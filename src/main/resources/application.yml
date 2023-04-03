@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: financesK
+
+  profiles:
+    active: ${PROFILE}
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+file:
+  path: src/main/resource/data.csv

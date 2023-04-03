@@ -1,0 +1,23 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:file:./resources/financesK
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  h2:
+    console:
+      enabled: true
+
+file:
+  path: src/main/resource/data.csv
