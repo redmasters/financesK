@@ -4,6 +4,8 @@ import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import io.red.financesk.models.Transaction
 import io.red.financesk.repositories.TransactionJpaRepository
+import io.red.financesk.utils.DateConverterUtil
+import io.red.financesk.utils.FormatValuesUtil
 import org.springframework.stereotype.Service
 import java.io.File
 
@@ -47,11 +49,18 @@ class SaveReportService(
 
     csvReader().open(OUTPUT_FILE) {
       readAllWithHeaderAsSequence().forEach { row ->
+        val formattedDate = DateConverterUtil(row["DATA LANÇAMENTO"] ?: "")
+          .convertDate()
+        val formattedValue = FormatValuesUtil(row["VALOR"] ?: "")
+          .formatValue()
+        val formattedBalance = FormatValuesUtil(row["SALDO"] ?: "")
+          .formatValue()
+
         val transactionEntity = Transaction(
-          dataLancamento = row["DATA LANÇAMENTO"] ?: "",
+          dataLancamento = formattedDate,
           historico = row["HISTÓRICO"] ?: "",
-          valor = row["VALOR"] ?: "",
-          saldo = row["SALDO"] ?: ""
+          valor = formattedValue,
+          saldo = formattedBalance
         )
 
         transactionList.add(transactionEntity)
