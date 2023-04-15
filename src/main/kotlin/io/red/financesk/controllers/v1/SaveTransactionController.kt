@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ResponseStatus
 class SaveTransactionController(
   private val saveReportService: SaveReportService
 ) {
-  @PostMapping
+  @PostMapping("/process-report")
   @ResponseStatus(CREATED)
   fun saveReport() {
     return saveReportService.processReportData()

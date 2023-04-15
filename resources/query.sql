@@ -1,0 +1,22 @@
+select  data_lancamento, historico, valor
+from tbl_transactions transa
+where transa.historico ilike '%combustiveis%'
+or transa.historico ilike '%uninter%'
+or transa.historico ilike '%posto%'
+or transa.historico ilike '%times%'
+or transa.historico ilike  '%thess%'
+or transa.historico ilike '%economia%'
+or transa.historico ilike '%faculdade%'
+or transa.historico ilike '%comuni%'
+or transa.historico ilike '%livros%'
+or transa.historico ilike '%bonsai%'
+or transa.historico ilike '%alvará%'
+or transa.historico ilike '%books%'
+or transa.historico ilike '%idiomas%'
+or transa.historico ilike '%M. E. P. DA COSTA%'
+or transa.historico ilike '%M E P DA COSTA%'
+or transa.historico ilike '% K. DE J. C.%'
+or transa.historico ilike '%Internet%'
+or transa.historico ilike '%COMBUS%'
+or transa.historico ilike '%AGUIAR PETROLEO%'
+order by transa.data_lancamento;

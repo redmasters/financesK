@@ -8,13 +8,13 @@ import jakarta.persistence.Table
 import java.time.LocalDate
 
 @Entity
-@Table(name = "tbl_transactions")
-data class Transaction(
+@Table(name = "tbl_transactions_2023")
+data class Transaction2023(
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   val id: Long? = null,
   val dataLancamento: LocalDate,
   val historico: String,
-  val valor: Double,
-  val saldo: Double
+  val descricao: String,
+  val valor: Double
 )
