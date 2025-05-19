@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
@@ -22,9 +23,9 @@ import java.net.URI
 @RequestMapping("/api/spend-categories")
 class SpendCategoryController(private val spendCategoryService: SpendCategoryService) {
 
-    @GetMapping
+    @GetMapping("/all")
     fun getAllCategories(): List<SpendCategoryResponse> {
-        return spendCategoryService.getAllCategories();
+        return spendCategoryService.getAllCategories()
     }
 
     @GetMapping("/{id}")
@@ -33,8 +34,8 @@ class SpendCategoryController(private val spendCategoryService: SpendCategorySer
         return ResponseEntity.ok(category)
     }
 
-    @GetMapping("/name/{name}")
-    fun getCategoryByName(@PathVariable name: String): ResponseEntity<SpendCategoryResponse> {
+    @GetMapping
+    fun getCategoryByName(@RequestParam(value = "name" ) name: String): ResponseEntity<SpendCategoryResponse> {
         val category = spendCategoryService.getCategoryByName(name)
         return ResponseEntity.ok(category)
     }
@@ -42,7 +43,7 @@ class SpendCategoryController(private val spendCategoryService: SpendCategorySer
     @PutMapping("/{id}")
     fun editCategory(@PathVariable id: Long, @RequestBody request: EditCategoryRequest): ResponseEntity<Void> {
         spendCategoryService.editCategory(id, request)
-        return ResponseEntity.status(204).build();
+        return ResponseEntity.status(204).build()
     }
 
     @DeleteMapping("/{id}")
