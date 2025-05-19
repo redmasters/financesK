@@ -9,6 +9,8 @@ data class SpendCategory(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "category_id")
     val id: Long? = null,
-    val name: String,
-    val description: String? = null
+    var name: String,
+    var description: String? = null,
+    @Column(name = "is_deleted", columnDefinition = "boolean default false")
+    var isDeleted: Boolean = false,
 )

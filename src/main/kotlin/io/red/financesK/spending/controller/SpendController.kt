@@ -18,7 +18,7 @@ import java.net.URI
 class SpendController(
     private val spendService: SpendService
 ) {
-    @PostMapping("/create")
+    @PostMapping
     fun createSpend(@RequestBody request: CreateSpendRequest): ResponseEntity<Long?> {
         val spend = spendService.createSpend(request)
         return ResponseEntity
@@ -26,7 +26,7 @@ class SpendController(
             .body(spend.id)
     }
 
-    @GetMapping("/all")
+    @GetMapping
     fun getAllSpends(): List<SpendResponse> {
         return spendService.getAllSpends()
     }
