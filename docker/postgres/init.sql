@@ -17,6 +17,7 @@ CREATE TABLE finances_spend
     is_due       BOOLEAN                                 NOT NULL,
     is_paid      BOOLEAN                                 NOT NULL,
     is_recurring BOOLEAN                                 NOT NULL,
+    status       VARCHAR(255),
     CONSTRAINT pk_finances_spend PRIMARY KEY (spend_id)
 );
 
