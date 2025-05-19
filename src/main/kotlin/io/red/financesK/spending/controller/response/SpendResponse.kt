@@ -11,6 +11,7 @@ class SpendResponse(
     val categoryName: String,
     val isDue: Boolean = false,
     val isPaid: Boolean = false,
-    val isRecurring: Boolean = false
+    val isRecurring: Boolean = false,
+    val status: String? = null
 ) {
 }

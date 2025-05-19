@@ -1,7 +1,11 @@
 package io.red.financesK.spending.model
 
+import io.red.financesK.spending.enums.SpendStatus
+import io.red.financesK.spending.enums.SpendStatus.PENDING
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -28,4 +32,6 @@ data class Spend(
     val isDue : Boolean = false,
     val isPaid : Boolean = false,
     val isRecurring : Boolean = false,
+    @Enumerated(EnumType.STRING)
+    val status : SpendStatus = PENDING
 )
