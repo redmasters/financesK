@@ -9,8 +9,9 @@ import org.springframework.stereotype.Service
 
 @Service
 class SpendCategoryService(private final val spendCategoryRepository: SpendCategoryRepository) {
-    final val CATEGORY_NOT_FOUND = "Category not found"
-
+    companion object {
+        const val CATEGORY_NOT_FOUND = "Category not found"
+    }
     fun createCategory(request: CreateCategoryRequest): SpendCategory {
         return spendCategoryRepository.save(request.toModel())
     }
