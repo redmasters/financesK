@@ -1,13 +1,13 @@
 package io.red.financesK.spending.enums
 
 enum class SpendStatus(
+    val id: Long
 ) {
-    PENDING,
-    PAID,
-    OVERDUE,
-    RECURRING,
-    DUE,
-    UNPAID
-    ;
+    PENDING(1L),
+    PAID(2L),
+    OVERDUE(3L),
+    RECURRING(4L),
+    DUE(5L),
+    UNPAID(6L),
 
 }

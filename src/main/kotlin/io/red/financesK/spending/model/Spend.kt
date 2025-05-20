@@ -22,16 +22,16 @@ data class Spend(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "spend_id")
     val id: Long? = null,
-    val name: String,
-    val amount: BigDecimal,
-    val dueDate: LocalDate,
+    var name: String,
+    var amount: BigDecimal,
+    var dueDate: LocalDate,
     @ManyToOne
     @JoinColumn(name = "category_id")
-    val category: SpendCategory,
-    val description: String? = null,
-    val isDue : Boolean = false,
-    val isPaid : Boolean = false,
-    val isRecurring : Boolean = false,
+    var category: SpendCategory,
+    var description: String? = null,
+    var isDue : Boolean = false,
+    var isPaid : Boolean = false,
+    var isRecurring : Boolean = false,
     @Enumerated(EnumType.STRING)
-    val status : SpendStatus = PENDING
+    var status : SpendStatus = PENDING
 )
