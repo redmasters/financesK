@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: "America/Sao_Paulo"
+      PROFILE: ${PROFILE}
+      FINANCESK_DB_URL: ${FINANCESK_DB_URL}
+      FINANCESK_DB_USER: ${FINANCESK_DB_USER}
+      FINANCESK_DB_PASS: ${FINANCESK_DB_PASS}
+    volumes:
+      - /home/financesk/financesk:/home/financesk
+      - /etc/localtime:/etc/localtime
+    networks:
+      - financesk_network
+networks:
+    financesk_network:
+      external: true

@@ -27,4 +27,4 @@ volumes:
 
 networks:
   financesk_network:
-    driver: bridge
+    external: true
