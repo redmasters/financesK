@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: redmater/financesk:0.0.1
     expose:
       - "8080"
     ports:
