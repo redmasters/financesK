@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
 @RestController
-@CrossOrigin(origins = ["*"])
+@CrossOrigin(origins = ["https://finances-k-frontend.vercel.app/"])
 @RequestMapping("/api/spend")
 class SpendController(
     private val spendService: SpendService
