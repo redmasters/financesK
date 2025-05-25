@@ -21,4 +21,4 @@ services:
       - financesk_network
 networks:
     financesk_network:
-      external: true
+      driver: bridge
