@@ -2,11 +2,11 @@ package io.red.financesK.spending.controller
 
 import io.red.financesK.spending.controller.request.CreateSpendRequest
 import io.red.financesK.spending.controller.request.EditSpendRequest
+import io.red.financesK.spending.controller.request.FilterSpendRequest
 import io.red.financesK.spending.controller.response.SpendResponse
 import io.red.financesK.spending.enums.SpendStatus
 import io.red.financesK.spending.service.SpendService
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.CrossOrigin
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
 @RestController
-@CrossOrigin(origins = ["https://finances-k-frontend.vercel.app/"])
 @RequestMapping("/api/spend")
 class SpendController(
     private val spendService: SpendService
@@ -79,5 +78,23 @@ class SpendController(
         return ResponseEntity.noContent().build()
     }
 
+    @GetMapping("/search")
+    fun searchSend(
+        @RequestParam(value = "startDate") startDate: String,
+        @RequestParam(value = "endDate") endDate: String,
+        @RequestParam(value = "isPaid", required = false) isPaid: Boolean?,
+        @RequestParam(value = "isDue", required = false) isDue: Boolean?,
+        @RequestParam(value = "categoryId", required = false) categoryId: Long?): ResponseEntity<List<SpendResponse>> {
 
+        val request = FilterSpendRequest(
+            startDate = startDate,
+            endDate = endDate,
+            isPaid = isPaid,
+            isDue = isDue,
+            categoryId = categoryId ?: 0L
+        )
+        val spends = spendService.filterSpendBy(request)
+        return ResponseEntity.ok(spends)
+
+    }
 }

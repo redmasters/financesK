@@ -11,7 +11,8 @@ class WebConfig {
         return  object : WebMvcConfigurer {
             override fun addCorsMappings(registry: org.springframework.web.servlet.config.annotation.CorsRegistry) {
                 registry.addMapping("/**")
-                    .allowedOrigins("https://finances-k-frontend.vercel.app/")
+//                    .allowedOrigins("https://finances-k-frontend.vercel.app/")
+                    .allowedOriginPatterns("*")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
                     .allowCredentials(true)

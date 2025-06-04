@@ -2,10 +2,12 @@ package io.red.financesK.spending.service
 
 import io.red.financesK.spending.controller.request.CreateSpendRequest
 import io.red.financesK.spending.controller.request.EditSpendRequest
+import io.red.financesK.spending.controller.request.FilterSpendRequest
 import io.red.financesK.spending.controller.response.SpendResponse
 import io.red.financesK.spending.enums.SpendStatus
 import io.red.financesK.spending.model.Spend
 import io.red.financesK.spending.repository.SpendCategoryRepository
+import io.red.financesK.spending.repository.SpendCustomRepository
 import io.red.financesK.spending.repository.SpendRepository
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -15,7 +17,8 @@ import java.time.LocalDate
 @Service
 class SpendService(
     private val spendRepository: SpendRepository,
-    private val spendCategoryRepository: SpendCategoryRepository
+    private val spendCategoryRepository: SpendCategoryRepository,
+    private val spendCustomRepository: SpendCustomRepository
 ) {
     val logger: Logger = LoggerFactory.getLogger(SpendService::class.java)
 
@@ -141,7 +144,7 @@ class SpendService(
         spend.isDue = isDue(request.dueDate)
         spend.isPaid = request.isPaid
         spend.isRecurring = request.isRecurring
-        spend.status = SpendStatus.valueOf(request.status)
+        spend.status = if (request.isPaid) SpendStatus.PAID else SpendStatus.PENDING
         spendRepository.save(spend)
     }
 
@@ -151,6 +154,25 @@ class SpendService(
             IllegalArgumentException("Spend with id $id not found")
         }
         spendRepository.delete(spend)
+    }
+
+    fun filterSpendBy(request: FilterSpendRequest): List<SpendResponse> {
+        logger.info("m=filterSpendBy - filter: $request")
+        val spends = spendCustomRepository.filterSpendBy(request);
+        return spends.map {
+            SpendResponse(
+                it.id,
+                it.name,
+                it.description,
+                it.amount,
+                it.dueDate.toString(),
+                it.category.name,
+                isDue(it.dueDate.toString()),
+                it.isPaid,
+                it.isRecurring,
+                SpendStatus.valueOf(it.status.name).name
+            )
+        }
     }
 
     companion object {
