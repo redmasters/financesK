@@ -12,10 +12,10 @@ data class FilterSpendRequest(
         return mapOf(
             "startDate" to (startDate ?: ""),
             "endDate" to (endDate ?: ""),
-            "isPaid" to (isPaid ?: false),
-            "isDue" to (isDue ?: false),
+            "isPaid" to (isPaid ?: null),
+            "isDue" to (isDue ?: null),
             "categoryId" to (categoryId ?: 0L)
-        )
+        ) as Map<String, Any>
     }
 }
 

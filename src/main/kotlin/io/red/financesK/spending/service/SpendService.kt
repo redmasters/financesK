@@ -23,7 +23,7 @@ class SpendService(
     val logger: Logger = LoggerFactory.getLogger(SpendService::class.java)
 
     fun getAllSpends(): List<SpendResponse> {
-        val spends = spendRepository.findAll()
+        val spends = spendRepository.findAll().toList();
 
         logger.info("m=getAllSpends, spends: ${spends.size}")
         return spends.map {
@@ -172,7 +172,8 @@ class SpendService(
                 it.isRecurring,
                 SpendStatus.valueOf(it.status.name).name
             )
-        }
+        }.sortedBy { it.dueDate }
+
     }
 
     companion object {
