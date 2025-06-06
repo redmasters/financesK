@@ -17,7 +17,7 @@ services:
       FINANCESK_DB_PASS: ${FINANCESK_DB_PASS}
     volumes:
       - /etc/localtime:/etc/localtime
-      - /home/ubuntu/.postgresql:/etc/postgresql-ssl:ro
+      - /home/ubuntu/.postgresql:/etc/postgresql-ssl:ro,noexec
       - /etc/letsencrypt/live/financesk.ddns.net/:/etc/letsencrypt/live/financesk.ddns.net:ro
     networks:
       - financesk_network
