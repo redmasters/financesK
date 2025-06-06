@@ -48,8 +48,6 @@ class FilterSpendCustomQuery(
 
         val whereClause = if (conditions.isNotEmpty()) {
             "WHERE " + conditions.joinToString(" AND ")
-            // add order by spend.amount
-            conditions.add(" ORDER BY spend.amount")
         } else {
             ""
         }
