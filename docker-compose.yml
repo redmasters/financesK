@@ -18,6 +18,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime
       - /home/ubuntu/.postgresql:/etc/postgresql-ssl:ro
+      - /etc/letsencrypt/live/financesk.ddns.net/:/etc/letsencrypt/live/financesk.ddns.net:ro
     networks:
       - financesk_network
 networks:

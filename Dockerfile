@@ -31,7 +31,8 @@ RUN addgroup -S $GROUP && \
     adduser -S $USER -G $GROUP && \
     mkdir -p $APP_HOME && \
     mkdir -p /etc/postgresql-ssl && \
-    chown -R $USER:$GROUP $APP_HOME /etc/postgresql-ssl
+    mkdir -p /etc/letsencrypt/live/financesk.ddns.net && \
+    chown -R $USER:$GROUP $APP_HOME /etc/postgresql-ssl /etc/letsencrypt/live/financesk.ddns.net
 
 WORKDIR $APP_HOME
 
