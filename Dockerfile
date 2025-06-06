@@ -32,6 +32,9 @@ RUN addgroup -S $GROUP && \
     mkdir -p $APP_HOME && \
     chown -R $USER:$GROUP $APP_HOME
 
+RUN mkdir -p /etc/postgresql-ssl && \
+    chown -R $USER:$GROUP /etc/posgresql-ssl
+
 WORKDIR $APP_HOME
 
 # 6. Copia apenas o JAR necessário

@@ -16,8 +16,8 @@ services:
       FINANCESK_DB_USER: ${FINANCESK_DB_USER}
       FINANCESK_DB_PASS: ${FINANCESK_DB_PASS}
     volumes:
-      - /home/financesk/financesk:/home/financesk
       - /etc/localtime:/etc/localtime
+      - /home/ubuntu/.postgresql:/etc/postgresql-ssl:ro
     networks:
       - financesk_network
 networks:
