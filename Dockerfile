@@ -31,7 +31,7 @@ RUN addgroup -S $GROUP && \
     adduser -S $USER -G $GROUP && \
     mkdir -p $APP_HOME && \
     mkdir -p /etc/postgresql-ssl && \
-    chown -R $USER:$GROUP $APP_HOME
+    chown -R $USER:$GROUP $APP_HOME /etc/postgresql-ssl
 
 WORKDIR $APP_HOME
 
