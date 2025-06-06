@@ -30,10 +30,8 @@ ENV APP_HOME=/app \
 RUN addgroup -S $GROUP && \
     adduser -S $USER -G $GROUP && \
     mkdir -p $APP_HOME && \
+    mkdir -p /etc/postgresql-ssl && \
     chown -R $USER:$GROUP $APP_HOME
-
-RUN mkdir -p /etc/postgresql-ssl && \
-    chown -R $USER:$GROUP /etc/posgresql-ssl
 
 WORKDIR $APP_HOME
 
