@@ -38,7 +38,7 @@ ENV APP_HOME=/app
 
 # Copiar e importar certificado como root
 COPY --from=build /app/build/libs/financesK-*.jar /tmp/app.jar
-COPY /home/ubuntu/.postgresql/root.crt /tmp/root.crt
+COPY root.crt /tmp/root.crt
 
 RUN export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java)))) && \
     keytool -importcert -noprompt \
