@@ -15,6 +15,7 @@ services:
       FINANCESK_DB_PROD_URL: ${FINANCESK_DB_PROD_URL}
       FINANCESK_DB_USER: ${FINANCESK_DB_USER}
       FINANCESK_DB_PASS: ${FINANCESK_DB_PASS}
+      SPRING_DATASOURCE_HIKARI_DATA-SOURCE-PROPERTIES_SSLMODE: verify-full
     volumes:
       - /etc/localtime:/etc/localtime
       - /home/ubuntu/.postgresql:/etc/postgresql-ssl:ro,noexec

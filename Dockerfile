@@ -32,15 +32,16 @@ RUN addgroup -S $GROUP && \
     mkdir -p $APP_HOME && \
     mkdir -p /etc/postgresql-ssl && \
     mkdir -p /etc/letsencrypt/live/financesk.ddns.net && \
-    # Ajusta permissões
     chown -R $USER:$GROUP $APP_HOME && \
     chown 755 /etc/postgresql-ssl && \
     chown 755 /etc/letsencrypt/live/financesk.ddns.net
 
 WORKDIR $APP_HOME
-
 # 6. Copia apenas o JAR necessário
 COPY --from=build --chown=$USER:$GROUP $APP_HOME/build/libs/financesK-*.jar app.jar
+
+COPY docker-entrypoint.sh $APP_HOME/
+RUN chmod +x $APP_HOME/docker-entrypoint.sh
 
 # 7. Healthcheck sem dependências externas (Spring Boot Actuator)
 HEALTHCHECK --interval=30s --timeout=3s \
@@ -50,4 +51,5 @@ HEALTHCHECK --interval=30s --timeout=3s \
 USER $USER
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
