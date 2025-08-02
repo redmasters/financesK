@@ -17,9 +17,7 @@ services:
       FINANCESK_DB_PASS: ${FINANCESK_DB_PASS}
       SPRING_DATASOURCE_HIKARI_DATA-SOURCE-PROPERTIES_SSLMODE: verify-full
     volumes:
-      - /etc/localtime:/etc/localtime
-      - /home/ubuntu/.postgresql:/etc/postgresql-ssl:ro,noexec
-      - /etc/letsencrypt/live/financesk.ddns.net/:/etc/letsencrypt/live/financesk.ddns.net:ro
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - financesk_network
 networks:
