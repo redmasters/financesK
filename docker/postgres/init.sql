@@ -13,7 +13,7 @@ CREATE TABLE tbl_transaction (
     description VARCHAR(255) NOT NULL,
     amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
     type VARCHAR(10) NOT NULL CHECK (type IN ('EXPENSE', 'INCOME')),
-    category_id INTEGER NOT NULL REFERENCES category(id),
+    category_id INTEGER NOT NULL REFERENCES tbl_category(id),
     transaction_date DATE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     notes TEXT,
@@ -35,8 +35,8 @@ CREATE TABLE tbl_category (
 -- Tabela de orçamentos
 CREATE TABLE tbl_budget (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES app_user(id),
-    category_id INTEGER REFERENCES category(id),
+    user_id INTEGER NOT NULL REFERENCES tbl_app_user(id),
+    category_id INTEGER REFERENCES tbl_category(id),
     amount DECIMAL(10, 2) NOT NULL,
     budget_month DATE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
