@@ -19,7 +19,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.http.MediaType
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.red.financesK.transaction.model.InstallmentInfo
 import java.math.BigDecimal
 import java.time.LocalDate
 import org.junit.jupiter.api.extension.ExtendWith
