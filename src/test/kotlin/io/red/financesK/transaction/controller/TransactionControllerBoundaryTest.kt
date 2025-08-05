@@ -1,28 +1,21 @@
 package io.red.financesK.transaction.controller
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
-import io.red.financesK.transaction.controller.response.TransactionResponse
-import io.red.financesK.transaction.service.create.CreateTransactionService
-import io.red.financesK.transaction.service.search.SearchTransactionByIdService
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.InjectMocks
-import org.mockito.Mock
+import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.junit.jupiter.MockitoExtension
-import org.springframework.http.ResponseEntity
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.context.TestPropertySource
-import org.springframework.test.web.servlet.MockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import org.springframework.http.MediaType
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.math.BigDecimal
 import java.time.LocalDate
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -32,15 +25,6 @@ class TransactionControllerBoundaryTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
-
-    @Mock
-    private lateinit var createTransactionService: CreateTransactionService
-
-    @Mock
-    private lateinit var searchTransactionByIdService: SearchTransactionByIdService
-
-    @InjectMocks
-    private lateinit var transactionController: TransactionController
 
     private val objectMapper = jacksonObjectMapper().apply {
         registerModule(com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
