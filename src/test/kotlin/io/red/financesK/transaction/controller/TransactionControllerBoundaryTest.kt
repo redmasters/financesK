@@ -38,11 +38,11 @@ class TransactionControllerBoundaryTest {
             amount = BigDecimal(0.0),
             type = "EXPENSE",
             categoryId = 1,
-            startDate = LocalDate.of(2025, 8, 4),
+            dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = null,
-            1,
-            userId = 1,
+            totalInstallments = 1,
+            userId = 1
         )
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/transactions")
@@ -60,11 +60,11 @@ class TransactionControllerBoundaryTest {
             amount = BigDecimal(-10.0),
             type = "EXPENSE",
             categoryId = 1,
-            startDate = LocalDate.of(2025, 8, 4),
+            dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = null,
-            1,
-            userId = 1,
+            totalInstallments = 1,
+            userId = 1
         )
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/transactions")
@@ -80,7 +80,7 @@ class TransactionControllerBoundaryTest {
         mockMvc.perform(
             MockMvcRequestBuilders.get("/api/transactions/0")
         )
-            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.status().isNotFound)
     }
 
     @Test
@@ -89,7 +89,7 @@ class TransactionControllerBoundaryTest {
         mockMvc.perform(
             MockMvcRequestBuilders.get("/api/transactions/-1")
         )
-            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.status().isNotFound)
     }
 
 }

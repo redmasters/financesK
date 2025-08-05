@@ -10,8 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
 import io.red.financesK.transaction.controller.response.TransactionResponse
 import io.red.financesK.transaction.service.create.CreateTransactionService
-import io.red.financesK.transaction.service.search.SearchTransactionByIdService
 import io.red.financesK.transaction.service.search.SearchTransactionService
+import io.red.financesK.transaction.service.update.UpdateTransactionService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
@@ -27,6 +27,9 @@ class TransactionControllerTest {
     @Mock
     private lateinit var searchTransactionService: SearchTransactionService
 
+    @Mock
+    private lateinit var updateTransactionService: UpdateTransactionService
+
     @InjectMocks
     private lateinit var transactionController: TransactionController
 
@@ -38,11 +41,11 @@ class TransactionControllerTest {
             amount = BigDecimal(100.0),
             type = "EXPENSE",
             categoryId = 1,
-            startDate = LocalDate.of(2025, 8, 4),
+            dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = null,
-            1,
-            userId = 1,
+            totalInstallments = 1,
+            userId = 1
         )
         Mockito.doNothing().`when`(createTransactionService).execute(request)
         assertDoesNotThrow { transactionController.create(request) }
@@ -56,11 +59,11 @@ class TransactionControllerTest {
             amount = BigDecimal(0.0),
             type = "EXPENSE",
             categoryId = 1,
-            startDate = LocalDate.of(2025, 8, 4),
+            dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = null,
-            1,
-            userId = 1,
+            totalInstallments = 1,
+            userId = 1
         )
         Mockito.doThrow(io.red.financesK.global.exception.ValidationException("Transaction amount must be greater than zero"))
             .`when`(createTransactionService).execute(request)
@@ -78,11 +81,11 @@ class TransactionControllerTest {
             amount = BigDecimal(-10.0),
             type = "EXPENSE",
             categoryId = 1,
-            startDate = LocalDate.of(2025, 8, 4),
+            dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = null,
-            1,
-            userId = 1,
+            totalInstallments = 1,
+            userId = 1
         )
         Mockito.doThrow(io.red.financesK.global.exception.ValidationException("Transaction amount must be greater than zero"))
             .`when`(createTransactionService).execute(request)
@@ -109,10 +112,12 @@ class TransactionControllerTest {
             id = id,
             description = "Compra",
             amount = BigDecimal(100.0),
+            downPayment = null,
             type = "EXPENSE",
+            status = "PENDING",
             categoryId = 1,
-            transactionDate = LocalDate.of(2025, 8, 4),
-            Instant.now(),
+            dueDate = LocalDate.of(2025, 8, 4),
+            createdAt = Instant.now(),
             userId = 1,
             installmentInfo = null,
             notes = null,
@@ -133,10 +138,10 @@ class TransactionControllerTest {
             amount = BigDecimal(120.0),
             type = "EXPENSE",
             categoryId = 1,
-            startDate = LocalDate.of(2025, 8, 4),
+            dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = "MONTHLY",
-            12,
+            totalInstallments = 12,
             userId = 1,
         )
         Mockito.doNothing().`when`(createTransactionService).execute(request)
