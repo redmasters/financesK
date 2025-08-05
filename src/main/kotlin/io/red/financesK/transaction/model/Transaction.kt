@@ -1,6 +1,9 @@
 package io.red.financesK.transaction.model
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType
+import io.red.financesK.transaction.enums.PaymentStatus
+import io.red.financesK.transaction.enums.RecurrencePattern
+import io.red.financesK.transaction.enums.TransactionType
 import io.red.financesK.user.model.AppUser
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
@@ -24,19 +27,29 @@ data class Transaction(
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     val amount: BigDecimal,
 
+    @Column(name = "down_payment", precision = 10, scale = 2)
+    val downPayment: BigDecimal? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 10)
     val type: TransactionType? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 10)
+    val status: PaymentStatus = PaymentStatus.PENDING,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     val categoryId: Category,
 
-    @Column(name = "transaction_date", nullable = false)
-    val transactionDate: LocalDate,
+    @Column(name = "due_date", nullable = false)
+    val dueDate: LocalDate,
 
     @Column(name = "created_at")
     val createdAt: Instant? = null,
+
+    @Column(name = "updated_at")
+    val updatedAt: Instant? = null,
 
     @Column(name = "notes")
     val notes: String? = null,
@@ -53,37 +66,6 @@ data class Transaction(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     val userId: AppUser
-) {
-    enum class TransactionType {
-        EXPENSE,
-        INCOME;
+)
 
-        companion object {
-            fun fromString(value: String?): TransactionType? {
-                return values().find { it.name.equals(value, ignoreCase = true) }
-            }
 
-            fun toString(type: TransactionType?): String? {
-                return type?.name?.lowercase()
-            }
-        }
-    }
-
-    enum class RecurrencePattern {
-        DAILY,
-        WEEKLY,
-        MONTHLY,
-        YEARLY;
-        
-        companion object {
-            fun fromString(value: String?): RecurrencePattern? {
-                return values().find { it.name.equals(value, ignoreCase = true) }
-            }
-
-            fun toString(pattern: RecurrencePattern?): String? {
-                return pattern?.name?.lowercase()
-            }
-        }
-    }
-    
-}
