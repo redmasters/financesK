@@ -2,7 +2,6 @@ package io.red.financesK.transaction.controller.request
 
 import java.math.BigDecimal
 import java.time.LocalDate
-import io.red.financesK.transaction.model.InstallmentInfo
 
 /**
  * DTO para filtros de busca de transações. Todos os campos são opcionais.
