@@ -1,7 +1,7 @@
 package io.red.financesK.transaction.service.create
 
-import io.mockk.*
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
+import io.red.financesK.transaction.enums.TransactionType
 import io.red.financesK.transaction.model.Category
 import io.red.financesK.transaction.model.InstallmentInfo
 import io.red.financesK.transaction.model.Transaction
@@ -9,11 +9,7 @@ import io.red.financesK.transaction.repository.CategoryRepository
 import io.red.financesK.transaction.repository.TransactionRepository
 import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.repository.AppUserRepository
-import net.bytebuddy.matcher.ElementMatchers.any
-import org.hamcrest.Matchers.any
 import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
@@ -41,9 +37,9 @@ class CreateTransactionServiceTest {
             id = 1,
             description = "Compra de supermercado 1/1",
             amount = BigDecimal("150.00"),
-            type = Transaction.TransactionType.EXPENSE,
+            type = TransactionType.EXPENSE,
             categoryId = category,
-            transactionDate = LocalDate.of(2025, 8, 3),
+            dueDate = LocalDate.of(2025, 8, 3),
             createdAt = Instant.now(),
             notes = "Compra do mês",
             recurrencePattern = null,
@@ -57,15 +53,15 @@ class CreateTransactionServiceTest {
     @DisplayName("Deve criar uma transação com sucesso")
     fun `should create transaction successfully`() {
         val request = CreateTransactionRequest(
-            "Compra de supermercado",
-            BigDecimal("150.00"),
-            "EXPENSE",
-            1,
-            LocalDate.of(2025, 8, 3),
-            "Compra do mês",
-            null,
-            1,
-            10
+            description = "Compra de supermercado",
+            amount = BigDecimal("150.00"),
+            type = "EXPENSE",
+            categoryId = 1,
+            dueDate = LocalDate.of(2025, 8, 3),
+            notes = "Compra do mês",
+            recurrencePattern = null,
+            totalInstallments = 1,
+            userId = 10
         )
         val transactionList = listOf(transaction)
 
@@ -77,5 +73,3 @@ class CreateTransactionServiceTest {
     }
 
 }
-
-
