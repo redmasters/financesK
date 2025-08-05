@@ -2,6 +2,7 @@ package io.red.financesK.transaction.service.search
 
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.TransactionResponse
+import io.red.financesK.transaction.repository.TransactionRepository
 import io.red.financesK.transaction.repository.custom.TransactionCustomRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -10,7 +11,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class SearchTransactionService(
-    private val transactionCustomRepository: TransactionCustomRepository
+    private val transactionCustomRepository: TransactionCustomRepository,
+    private val transactionRepository: TransactionRepository
 ) {
     private val log = LoggerFactory.getLogger(SearchTransactionService::class.java)
 
@@ -38,5 +40,27 @@ class SearchTransactionService(
                 userId = entity.userId?.id ?: 0
             )
         }
+    }
+
+    fun searchById(id: Int): TransactionResponse? {
+        log.info("m='searchById', acao='buscando transação por id', id='{}'", id)
+        val transaction = transactionRepository.findById(id).orElse(null) ?: run {
+            log.info("m='searchById', acao='transação não encontrada', id='{}'", id)
+            return null
+        }
+        log.info("m='searchById', acao='transação encontrada', id='{}'", id)
+        return TransactionResponse(
+            id = transaction.id!!,
+            description = transaction.description,
+            amount = transaction.amount,
+            type = transaction.type?.name ?: "UNKNOWN",
+            categoryId = transaction.categoryId?.id ?: 0,
+            transactionDate = transaction.transactionDate,
+            createdAt = transaction.createdAt,
+            notes = transaction.notes,
+            recurrencePattern = transaction.recurrencePattern?.name,
+            installmentInfo = transaction.installmentInfo,
+            userId = transaction.userId?.id ?: 0
+        )
     }
 }

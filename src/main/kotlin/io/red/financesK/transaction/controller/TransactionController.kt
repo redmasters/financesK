@@ -4,7 +4,6 @@ import io.red.financesK.transaction.controller.request.CreateTransactionRequest
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.TransactionResponse
 import io.red.financesK.transaction.service.create.CreateTransactionService
-import io.red.financesK.transaction.service.search.SearchTransactionByIdService
 import io.red.financesK.transaction.service.search.SearchTransactionService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -17,7 +16,6 @@ import java.time.LocalDate
 @RequestMapping("/api/transactions")
 class TransactionController(
     private val createTransactionService: CreateTransactionService,
-    private val searchTransactionByIdService: SearchTransactionByIdService,
     private val searchTransactionService: SearchTransactionService
 ) {
     @PostMapping
@@ -28,7 +26,7 @@ class TransactionController(
 
     @GetMapping("/{id}")
     fun getById(@PathVariable id: Int): ResponseEntity<TransactionResponse> {
-        val response = searchTransactionByIdService.execute(id)
+        val response = searchTransactionService.searchById(id)
         return response?.let { ResponseEntity.ok(it) } ?: ResponseEntity.notFound().build()
     }
 

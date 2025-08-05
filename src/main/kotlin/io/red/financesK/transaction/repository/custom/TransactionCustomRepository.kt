@@ -1,5 +1,6 @@
 package io.red.financesK.transaction.repository.custom
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.model.Category
@@ -12,13 +13,13 @@ import org.springframework.data.domain.Pageable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
-import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.HashMap
 
 @Repository
 class TransactionCustomRepository(
-    private val jdbcTemplate: NamedParameterJdbcTemplate
+    private val jdbcTemplate: NamedParameterJdbcTemplate,
+    private val objectMapper: ObjectMapper
 ) {
     private val log = LoggerFactory.getLogger(TransactionCustomRepository::class.java)
 
@@ -90,11 +91,9 @@ class TransactionCustomRepository(
 
             )
 
-            val installmentInfo = InstallmentInfo(
-                totalInstallments = rs.getObject("installment_info", Map::class.java)?.get("totalInstallments") as? Int,
-                currentInstallment = rs.getObject("installment_info", Map::class.java)?.get("currentInstallment") as? Int,
-                installmentValue = rs.getObject("installment_info", Map::class.java)?.get("installmentValue") as? BigDecimal
-            )
+            val installmentInfo = rs.getString("installment_info")?.let {
+                objectMapper.readValue(it, InstallmentInfo::class.java)
+            }
 
             Transaction(
                 id = rs.getInt("id"),
