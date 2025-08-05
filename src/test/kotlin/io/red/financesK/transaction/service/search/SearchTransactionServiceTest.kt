@@ -1,10 +1,12 @@
 package io.red.financesK.transaction.service.search
 
+import io.mockk.every
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.TransactionResponse
 import io.red.financesK.transaction.model.Category
 import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.model.InstallmentInfo
+import io.red.financesK.transaction.repository.TransactionRepository
 import io.red.financesK.transaction.repository.custom.TransactionCustomRepository
 import io.red.financesK.user.model.AppUser
 import org.junit.jupiter.api.Assertions.*
@@ -22,12 +24,15 @@ import org.springframework.data.domain.PageRequest
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.Instant
+import java.util.Optional
 
 @ExtendWith(MockitoExtension::class)
 class SearchTransactionServiceTest {
 
     @Mock
     private lateinit var transactionCustomRepository: TransactionCustomRepository
+    @Mock
+    private lateinit var transactionRepository: TransactionRepository
 
     @InjectMocks
     private lateinit var searchTransactionService: SearchTransactionService
@@ -158,5 +163,44 @@ class SearchTransactionServiceTest {
         assertEquals(1, result.totalElements)
         assertEquals(installmentInfo, result.content[0].installmentInfo)
     }
-}
+
+
+    @Test
+    @DisplayName("Deve retornar a transação pelo id quando existir")
+    fun `should return transaction response when found`() {
+        val transaction = Transaction(
+            id = 1,
+            description = "Compra supermercado",
+            amount = BigDecimal("150.00"),
+            type = Transaction.TransactionType.EXPENSE,
+            categoryId = Category(id = 1, name = "Supermercado", type = "EXPENSE"),
+            transactionDate = LocalDate.of(2025, 8, 3),
+            createdAt = Instant.now(),
+            notes = "Compra do mês",
+            recurrencePattern = null,
+            installmentInfo = null,
+            userId = AppUser(42, "teste", "teste@teste.com", "hash", Instant.now())
+        )
+        `when`(transactionRepository.findById(1)).thenReturn(Optional.of(transaction))
+        val response = searchTransactionService.searchById(1)
+        assertEquals(transaction.id, response?.id)
+        assertEquals(transaction.description, response?.description)
+        assertEquals(transaction.amount, response?.amount)
+        assertEquals(transaction.type.toString(), response?.type)
+        assertEquals(transaction.categoryId.id, response?.categoryId)
+        assertEquals(transaction.transactionDate, response?.transactionDate)
+        assertEquals(transaction.createdAt, response?.createdAt)
+        assertEquals(transaction.notes, response?.notes)
+        assertEquals(transaction.recurrencePattern, response?.recurrencePattern)
+        assertEquals(transaction.installmentInfo, response?.installmentInfo)
+        assertEquals(transaction.userId.id, response?.userId)
+    }
+
+    @Test
+    @DisplayName("Deve retornar null quando não encontrar a transação pelo id")
+    fun `should return null when transaction not found`() {
+        `when`(transactionRepository.findById(99)).thenReturn(Optional.empty())
+        val response = searchTransactionService.searchById(99)
+        assertNull(response)
+    }}
 

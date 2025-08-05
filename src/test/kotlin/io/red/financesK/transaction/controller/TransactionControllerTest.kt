@@ -11,6 +11,7 @@ import io.red.financesK.transaction.controller.request.CreateTransactionRequest
 import io.red.financesK.transaction.controller.response.TransactionResponse
 import io.red.financesK.transaction.service.create.CreateTransactionService
 import io.red.financesK.transaction.service.search.SearchTransactionByIdService
+import io.red.financesK.transaction.service.search.SearchTransactionService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
@@ -24,7 +25,7 @@ class TransactionControllerTest {
     private lateinit var createTransactionService: CreateTransactionService
 
     @Mock
-    private lateinit var searchTransactionByIdService: SearchTransactionByIdService
+    private lateinit var searchTransactionService: SearchTransactionService
 
     @InjectMocks
     private lateinit var transactionController: TransactionController
@@ -95,7 +96,7 @@ class TransactionControllerTest {
     @DisplayName("Deve lançar exceção ao buscar transação inexistente")
     fun `should throw exception when searching for non-existent transaction`() {
         val id = 999
-        Mockito.`when`(searchTransactionByIdService.execute(id)).thenReturn(null)
+        Mockito.`when`(searchTransactionService.searchById(id)).thenReturn(null)
         val response = transactionController.getById(id)
         assertEquals(404, response.statusCode.value())
     }
@@ -117,7 +118,7 @@ class TransactionControllerTest {
             notes = null,
             recurrencePattern = null
         )
-        Mockito.`when`(searchTransactionByIdService.execute(id)).thenReturn(responseMock)
+        Mockito.`when`(searchTransactionService.searchById(id)).thenReturn(responseMock)
         val response = transactionController.getById(id)
         assertEquals(200, response.statusCode.value())
         assertEquals(responseMock, response.body)
