@@ -2,6 +2,7 @@ package io.red.financesK.transaction.service.search
 
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.TransactionResponse
+import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.repository.TransactionRepository
 import io.red.financesK.transaction.repository.custom.TransactionCustomRepository
 import org.slf4j.LoggerFactory
@@ -25,22 +26,9 @@ class SearchTransactionService(
             filter, pageable.pageNumber, pageable.pageSize
         )
         val transactions = transactionCustomRepository.findByDynamicFilter(filter, pageable)
-        return transactions.map { entity ->
-            TransactionResponse(
-                id = entity.id!!,
-                description = entity.description,
-                amount = entity.amount,
-                type = entity.type?.name ?: "UNKNOWN",
-                categoryId = entity.categoryId?.id ?: 0,
-                transactionDate = entity.transactionDate,
-                createdAt = entity.createdAt,
-                notes = entity.notes,
-                recurrencePattern = entity.recurrencePattern?.name,
-                installmentInfo = entity.installmentInfo,
-                userId = entity.userId?.id ?: 0
-            )
-        }
+        return transactions.map { entity -> toTransactionResponse(entity) }
     }
+
 
     fun searchById(id: Int): TransactionResponse? {
         log.info("m='searchById', acao='buscando transação por id', id='{}'", id)
@@ -49,18 +37,23 @@ class SearchTransactionService(
             return null
         }
         log.info("m='searchById', acao='transação encontrada', id='{}'", id)
+        return toTransactionResponse(transaction)
+    }
+
+
+    private fun toTransactionResponse(entity: Transaction): TransactionResponse {
         return TransactionResponse(
-            id = transaction.id!!,
-            description = transaction.description,
-            amount = transaction.amount,
-            type = transaction.type?.name ?: "UNKNOWN",
-            categoryId = transaction.categoryId?.id ?: 0,
-            transactionDate = transaction.transactionDate,
-            createdAt = transaction.createdAt,
-            notes = transaction.notes,
-            recurrencePattern = transaction.recurrencePattern?.name,
-            installmentInfo = transaction.installmentInfo,
-            userId = transaction.userId?.id ?: 0
+            id = entity.id!!,
+            description = entity.description,
+            amount = entity.amount,
+            type = entity.type?.name ?: "UNKNOWN",
+            categoryId = entity.categoryId?.id ?: 0,
+            transactionDate = entity.transactionDate,
+            createdAt = entity.createdAt,
+            notes = entity.notes,
+            recurrencePattern = entity.recurrencePattern?.name,
+            installmentInfo = entity.installmentInfo,
+            userId = entity.userId?.id ?: 0
         )
     }
 }
