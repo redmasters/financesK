@@ -46,14 +46,16 @@ class SearchTransactionService(
             id = entity.id!!,
             description = entity.description,
             amount = entity.amount,
+            downPayment = entity.downPayment,
             type = entity.type?.name ?: "UNKNOWN",
-            categoryId = entity.categoryId?.id ?: 0,
-            transactionDate = entity.transactionDate,
+            status = entity.status.name,
+            categoryId = entity.categoryId.id!!,
+            dueDate = entity.dueDate,
             createdAt = entity.createdAt,
             notes = entity.notes,
             recurrencePattern = entity.recurrencePattern?.name,
             installmentInfo = entity.installmentInfo,
-            userId = entity.userId?.id ?: 0
+            userId = entity.userId.id!!
         )
     }
 }
