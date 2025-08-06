@@ -1,14 +1,9 @@
 package io.red.financesK.account.balance.model
 
+import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.account.model.Account
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
-import jakarta.persistence.Table
+import jakarta.persistence.*
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.Instant.now
 
@@ -24,8 +19,12 @@ data class AccountBalanceHistory(
     @JoinColumn(name = "account_id", nullable = false, referencedColumnName = "account_id")
     val account: Account,
 
-    @Column(name = "balance_history", nullable = false, precision = 10, scale = 2)
-    val balance: String, // Using String to handle potential formatting issues
+    @Column(name = "history_amount", nullable = false, precision = 10, scale = 2)
+    val amount: BigDecimal? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "history_operation_type", nullable = false, length = 10)
+    val operationType: AccountOperationType?,
 
     @Column(name = "balance_timestamp", nullable = false)
     val balanceTimestamp: Instant = now()

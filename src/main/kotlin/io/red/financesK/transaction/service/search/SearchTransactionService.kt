@@ -48,7 +48,7 @@ class SearchTransactionService(
             amount = entity.amount,
             downPayment = entity.downPayment,
             type = entity.type?.name ?: "UNKNOWN",
-            status = entity.status.name,
+            status = entity.status.toString(),
             categoryId = entity.categoryId.id!!,
             dueDate = entity.dueDate,
             createdAt = entity.createdAt,

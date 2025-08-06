@@ -1,6 +1,7 @@
 package io.red.financesK.account.service.search
 
 import io.red.financesK.account.controller.response.AccountResponse
+import io.red.financesK.account.model.Account
 import io.red.financesK.account.repository.AccountRepository
 import io.red.financesK.user.repository.AppUserRepository
 import org.slf4j.LoggerFactory
@@ -35,20 +36,14 @@ class SearchAccountService(
         }
     }
 
-    fun searchAccountById(accountId: Int): AccountResponse {
+    fun searchAccountById(accountId: Int?): Account {
         log.info("m='searchAccountById', action='searching account by id', accountId='{}'", accountId)
 
+        require(accountId != null) { "Account ID cannot be null" }
         val account = accountRepository.findById(accountId).orElseThrow {
             IllegalArgumentException("Account with id $accountId not found")
         }
 
-        return AccountResponse(
-            accountId = account.accountId,
-            name = account.accountName,
-            description = account.accountDescription,
-            balance = account.accountInitialBalance?.toString(),
-            currency = account.accountCurrency,
-            userId = account.userId?.id
-        )
+        return account
     }
 }

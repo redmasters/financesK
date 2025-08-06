@@ -2,15 +2,18 @@ package io.red.financesK.account.service.update
 
 import io.red.financesK.account.controller.request.UpdateAccountRequest
 import io.red.financesK.account.controller.response.UpdateAccountResponse
+import io.red.financesK.account.repository.AccountRepository
+import io.red.financesK.user.repository.AppUserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.RoundingMode
 
 @Service
 class UpdateAccountService(
-    private val accountRepository: io.red.financesK.account.repository.AccountRepository,
-    private val appUserRepository: io.red.financesK.user.repository.AppUserRepository
+    private val accountRepository: AccountRepository,
+    private val appUserRepository: AppUserRepository
 ) {
-    private val log = org.slf4j.LoggerFactory.getLogger(UpdateAccountService::class.java)
+    private val log = LoggerFactory.getLogger(UpdateAccountService::class.java)
 
     fun updateAccount(accountId: Int, request: UpdateAccountRequest): UpdateAccountResponse {
         log.info("m='updateAccount', action='updating account', accountId='{}', request='{}'", accountId, request)
@@ -39,13 +42,14 @@ class UpdateAccountService(
         )
     }
 
-    fun updateAccountBalance(accountId: Int, newBalance: String): UpdateAccountResponse {
+    fun updateAccountBalance(accountId: Int?, newBalance: String): UpdateAccountResponse {
         log.info(
             "m='updateAccountBalance', action='updating account balance', accountId='{}', newBalance='{}'",
             accountId,
             newBalance
         )
 
+        requireNotNull(accountId) { "Account ID cannot be null" }
         val account = accountRepository.findById(accountId).orElseThrow {
             IllegalArgumentException("Account with id $accountId not found")
         }

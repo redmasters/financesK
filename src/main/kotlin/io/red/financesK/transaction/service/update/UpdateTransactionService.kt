@@ -116,7 +116,7 @@ class UpdateTransactionService(
             amount = savedTransaction.amount,
             downPayment = savedTransaction.downPayment,
             type = savedTransaction.type?.name ?: "UNKNOWN",
-            status = savedTransaction.status.name,
+            status = PaymentStatus.toString(savedTransaction.status),
             categoryId = savedTransaction.categoryId.id!!,
             dueDate = savedTransaction.dueDate,
             createdAt = savedTransaction.createdAt,

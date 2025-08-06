@@ -1,6 +1,7 @@
 package io.red.financesK.transaction.model
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType
+import io.red.financesK.account.model.Account
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
 import io.red.financesK.transaction.enums.TransactionType
@@ -10,8 +11,8 @@ import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.annotations.Type
 import org.hibernate.type.SqlTypes
 import java.math.BigDecimal
-import java.time.LocalDate
 import java.time.Instant
+import java.time.LocalDate
 
 @Entity
 @Table(name = "tbl_transaction")
@@ -36,7 +37,7 @@ data class Transaction(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false, length = 10)
-    val status: PaymentStatus = PaymentStatus.PENDING,
+    val status: PaymentStatus? = PaymentStatus.PENDING,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -65,7 +66,11 @@ data class Transaction(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    val userId: AppUser
+    val userId: AppUser,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = false)
+    val accountId: Account? = null
 )
 
 
