@@ -16,6 +16,7 @@ import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/transactions")
+@CrossOrigin(origins = ["*"], allowedHeaders = ["*"])
 class TransactionController(
     private val createTransactionService: CreateTransactionService,
     private val searchTransactionService: SearchTransactionService,
