@@ -44,10 +44,10 @@ class CreateAccountService(
 
         return CreateAccountResponse(
             accountId = savedAccount.accountId,
-            name = savedAccount.accountName,
+            name = savedAccount.accountName ?: "",
             description = savedAccount.accountDescription,
             balance = savedAccount.accountInitialBalance?.toString() ?: "0.00",
-            currency = savedAccount.accountCurrency,
+            currency = savedAccount.accountCurrency ?: "BRL",
             userId = savedAccount.userId?.id ?: request.userId
         )
     }
@@ -144,17 +144,15 @@ class CreateAccountService(
             createBalanceHistory.createBalanceHistory(
                 accountId = account.accountId,
                 amount = initialBalance,
-                operationType = AccountOperationType.INITIAL_BALANCE
+                operationType = AccountOperationType.INITIAL_BALANCE,
+                transactionId = null
             )
         } catch (e: Exception) {
             log.error("m='createInitialBalanceHistory', action='error creating balance history', error='{}'", e.message)
-            // Não propagamos o erro para não falhar a criação da conta
-            // O histórico pode ser criado posteriormente se necessário
         }
     }
 }
 
-// Classe de resposta para retornar dados da conta criada
 data class CreateAccountResponse(
     val accountId: Int?,
     val name: String,

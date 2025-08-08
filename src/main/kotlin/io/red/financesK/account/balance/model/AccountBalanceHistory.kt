@@ -2,6 +2,7 @@ package io.red.financesK.account.balance.model
 
 import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.account.model.Account
+import io.red.financesK.transaction.model.Transaction
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.Instant
@@ -18,6 +19,10 @@ data class AccountBalanceHistory(
     @ManyToOne
     @JoinColumn(name = "account_id", nullable = false, referencedColumnName = "account_id")
     val account: Account,
+
+    @ManyToOne
+    @JoinColumn(name = "transaction_id", nullable = true, referencedColumnName = "id")
+    val transactionId: Transaction? = null,
 
     @Column(name = "history_amount", nullable = false, precision = 10, scale = 2)
     val amount: BigDecimal? = null,

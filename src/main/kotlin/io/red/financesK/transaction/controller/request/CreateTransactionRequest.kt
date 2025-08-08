@@ -8,6 +8,7 @@ class CreateTransactionRequest(
     val amount: BigDecimal,
     val downPayment: BigDecimal? = null,
     val type: String, // 'EXPENSE' or 'INCOME'
+    val operationType: String? = null, // 'CREDIT' or 'DEBIT'
     val status: String? = "PENDING", // 'PENDING', 'PAID', 'OVERDUE'
     val categoryId: Int,
     val dueDate: LocalDate,

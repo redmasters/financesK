@@ -2,6 +2,7 @@ package io.red.financesK.account.balance.enums
 
 enum class AccountOperationType {
     INITIAL_BALANCE,
+    SALARY,
     DEPOSIT,
     WITHDRAWAL,
     TRANSFER_IN,
@@ -30,7 +31,7 @@ enum class AccountOperationType {
 
     fun isPositive(): Boolean {
         return when (this) {
-            DEPOSIT, TRANSFER_IN, INTEREST, REWARD, LOAN_DISBURSEMENT, DIVIDEND, INITIAL_BALANCE -> true
+            DEPOSIT, TRANSFER_IN, INTEREST, REWARD, LOAN_DISBURSEMENT, DIVIDEND, INITIAL_BALANCE, SALARY -> true
             WITHDRAWAL, TRANSFER_OUT, FEE, ADJUSTMENT, REFUND, PAYMENT, LOAN_PAYMENT, TAX, OTHER -> false
         }
     }

@@ -8,6 +8,7 @@ data class UpdateTransactionRequest(
     val amount: BigDecimal? = null,
     val downPayment: BigDecimal? = null,
     val type: String? = null, // 'EXPENSE' or 'INCOME'
+    val operationType: String? = null, // 'DEBIT' or 'CREDIT'
     val categoryId: Int? = null,
     val dueDate: LocalDate? = null,
     val notes: String? = null,

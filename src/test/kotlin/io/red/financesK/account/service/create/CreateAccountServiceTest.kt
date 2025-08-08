@@ -1,21 +1,26 @@
 package io.red.financesK.account.service.create
 
+import io.red.financesK.account.balance.enums.AccountOperationType
+import io.red.financesK.account.balance.service.history.CreateBalanceHistory
 import io.red.financesK.account.controller.request.CreateAccountRequest
 import io.red.financesK.account.model.Account
 import io.red.financesK.account.repository.AccountRepository
+import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.repository.AppUserRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.ArgumentCaptor
+import org.mockito.Captor
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.Instant
 import java.util.*
 
@@ -28,292 +33,164 @@ class CreateAccountServiceTest {
     @Mock
     private lateinit var appUserRepository: AppUserRepository
 
+    @Mock
+    private lateinit var createBalanceHistory: CreateBalanceHistory
+
     @InjectMocks
-    private lateinit var createAccountService: CreateAccountService
+    private lateinit var service: CreateAccountService
+
+    @Captor
+    private lateinit var accountCaptor: ArgumentCaptor<Account>
 
     private lateinit var user: AppUser
-    private lateinit var account: Account
 
     @BeforeEach
     fun setup() {
-        user = AppUser(
-            id = 1,
-            username = "testUser",
-            email = "test@test.com",
-            passwordHash = "hashedPassword",
-            createdAt = Instant.now()
-        )
-
-        account = Account(
-            accountId = 1,
-            accountName = "Conta Corrente",
-            accountDescription = "Descrição da conta corrente",
-            accountInitialBalance = BigDecimal("1000.00").setScale(2, RoundingMode.HALF_EVEN),
-            accountCurrency = "BRL",
-            userId = user
-        )
+        user = AppUser(1, "testUser", "test@user.com", "hash", Instant.now())
     }
 
     @Test
-    @DisplayName("Deve criar uma conta com sucesso")
-    fun `should create account successfully`() {
+    @DisplayName("Deve criar uma conta com sucesso e registrar o histórico de saldo")
+    fun `should create account successfully and log balance history`() {
+        // Given
         val request = CreateAccountRequest(
             name = "Conta Corrente",
+            description = "Conta principal do usuário",
             balance = "1000.00",
+            currency = "BRL",
             userId = 1
         )
 
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(account)
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve criar conta com saldo inicial nulo")
-    fun `should create account with null initial balance`() {
-        val request = CreateAccountRequest(
-            name = "Conta Sem Saldo",
-            balance = null,
-            userId = 1
+        val savedAccount = Account(
+            accountId = 1,
+            accountName = request.name,
+            accountDescription = request.description,
+            accountInitialBalance = BigDecimal("1000.00"),
+            accountCurrency = request.currency,
+            userId = user
         )
 
         `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(account.copy(accountInitialBalance = null))
+        `when`(accountRepository.save(any(Account::class.java))).thenReturn(savedAccount)
 
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
+        // When
+        val response = service.createAccount(request)
+
+        // Then
+        assertNotNull(response)
+        assertEquals(savedAccount.accountId, response.accountId)
+        assertEquals(savedAccount.accountName, response.name)
+        assertEquals("1000.00", response.balance)
 
         verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
+        verify(accountRepository).save(accountCaptor.capture())
+        val capturedAccount = accountCaptor.value
+        assertEquals("Conta Corrente", capturedAccount.accountName)
+        assertEquals(BigDecimal("1000.00"), capturedAccount.accountInitialBalance)
+
+        verify(createBalanceHistory).createBalanceHistory(
+            accountId = 1,
+            amount = BigDecimal("1000.00"),
+            operationType = AccountOperationType.INITIAL_BALANCE
+        )
     }
 
     @Test
-    @DisplayName("Deve criar conta com saldo inicial zerado")
-    fun `should create account with zero initial balance`() {
-        val request = CreateAccountRequest(
-            name = "Conta Zerada",
-            balance = "0.00",
-            userId = 1
-        )
-
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountInitialBalance = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN))
-        )
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve lançar exceção quando usuário não for encontrado")
-    fun `should throw exception when user not found`() {
-        val request = CreateAccountRequest(
-            name = "Conta Teste",
-            balance = "500.00",
-            userId = 999
-        )
-
+    @DisplayName("Deve falhar ao tentar criar conta para um usuário inexistente")
+    fun `should fail when creating account for non-existent user`() {
+        // Given
+        val request = CreateAccountRequest("Conta Fantasma", "desc", "100.0", "BRL", 999)
         `when`(appUserRepository.findById(999)).thenReturn(Optional.empty())
 
-        val exception = assertThrows(IllegalArgumentException::class.java) {
-            createAccountService.createAccount(request)
+        // When & Then
+        val exception = assertThrows<ValidationException> {
+            service.createAccount(request)
         }
-
         assertEquals("User with id 999 not found", exception.message)
         verify(appUserRepository).findById(999)
-        verify(accountRepository, never()).save(any(Account::class.java))
+        verifyNoInteractions(accountRepository)
+        verifyNoInteractions(createBalanceHistory)
     }
 
     @Test
-    @DisplayName("Deve tratar valor inválido de saldo inicial")
-    fun `should handle invalid initial balance value`() {
-        val request = CreateAccountRequest(
-            name = "Conta Inválida",
-            balance = "valor_inválido",
-            userId = 1
-        )
+    @DisplayName("Deve falhar se o nome da conta estiver em branco")
+    fun `should fail if account name is blank`() {
+        // Given
+        val request = CreateAccountRequest(" ", "desc", "100.0", "BRL", 1)
 
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountInitialBalance = null)
-        )
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
+        // When & Then
+        val exception = assertThrows<ValidationException> {
+            service.createAccount(request)
         }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
+        assertEquals("Account name cannot be blank", exception.message)
+        verifyNoInteractions(appUserRepository)
     }
 
     @Test
-    @DisplayName("Deve criar conta com valor decimal formatado corretamente")
-    fun `should create account with properly formatted decimal value`() {
-        val request = CreateAccountRequest(
-            name = "Conta Decimal",
-            balance = "1234.567", // Será arredondado para 2 casas decimais
-            userId = 1
-        )
+    @DisplayName("Deve falhar se o código da moeda for inválido")
+    fun `should fail if currency code is invalid`() {
+        // Given
+        val request = CreateAccountRequest("Conta Válida", "desc", "100.0", "INVALID", 1)
 
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountInitialBalance = BigDecimal("1234.57").setScale(2, RoundingMode.HALF_EVEN))
-        )
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
+        // When & Then
+        val exception = assertThrows<ValidationException> {
+            service.createAccount(request)
         }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
+        assertEquals("Currency must be a 3-letter code (e.g., BRL, USD)", exception.message)
+        verifyNoInteractions(appUserRepository)
     }
 
     @Test
-    @DisplayName("Deve criar conta com nome longo (boundary test)")
-    fun `should create account with long name`() {
-        val longName = "A".repeat(100) // Nome de 100 caracteres (limite da coluna)
-        val request = CreateAccountRequest(
-            name = longName,
-            balance = "1000.00",
-            userId = 1
-        )
+    @DisplayName("Deve criar conta com saldo zero se o valor for nulo ou em branco")
+    fun `should create account with zero balance if value is null or blank`() {
+        // Given
+        val request = CreateAccountRequest("Conta sem Saldo", "desc", null, "BRL", 1)
+        val savedAccount = Account(1, request.name, request.description, BigDecimal.ZERO, request.currency, user)
 
         `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountName = longName)
-        )
+        `when`(accountRepository.save(any(Account::class.java))).thenReturn(savedAccount)
 
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
+        // When
+        service.createAccount(request)
 
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
+        // Then
+        verify(accountRepository).save(accountCaptor.capture())
+        assertEquals(BigDecimal.ZERO, accountCaptor.value.accountInitialBalance)
+        verify(createBalanceHistory).createBalanceHistory(1, BigDecimal.ZERO, AccountOperationType.INITIAL_BALANCE)
     }
 
     @Test
-    @DisplayName("Deve criar conta com valor monetário grande (edge test)")
-    fun `should create account with large monetary value`() {
-        val request = CreateAccountRequest(
-            name = "Conta Grande",
-            balance = "99999999.99", // Valor máximo para precision 10, scale 2
-            userId = 1
-        )
-
+    @DisplayName("Deve falhar se o saldo inicial for negativo")
+    fun `should fail if initial balance is negative`() {
+        // Given
+        val request = CreateAccountRequest("Conta Negativa", "desc", "-100.00", "BRL", 1)
         `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountInitialBalance = BigDecimal("99999999.99").setScale(2, RoundingMode.HALF_EVEN))
-        )
 
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
+        // When & Then
+        val exception = assertThrows<ValidationException> {
+            service.createAccount(request)
         }
-
+        assertEquals("Initial balance cannot be negative", exception.message)
         verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
+        verifyNoInteractions(accountRepository)
     }
 
     @Test
-    @DisplayName("Deve criar conta com valor negativo")
-    fun `should create account with negative balance`() {
-        val request = CreateAccountRequest(
-            name = "Conta Negativa",
-            balance = "-500.00",
-            userId = 1
-        )
+    @DisplayName("Deve continuar a criação da conta mesmo se o histórico de saldo falhar")
+    fun `should create account even if balance history creation fails`() {
+        // Given
+        val request = CreateAccountRequest("Conta Resiliente", "desc", "200.00", "BRL", 1)
+        val savedAccount = Account(1, request.name, request.description, BigDecimal("200.00"), request.currency, user)
 
         `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountInitialBalance = BigDecimal("-500.00").setScale(2, RoundingMode.HALF_EVEN))
-        )
+        `when`(accountRepository.save(any(Account::class.java))).thenReturn(savedAccount)
+        doThrow(RuntimeException("Falha ao salvar histórico")).`when`(createBalanceHistory).createBalanceHistory(anyInt(), any(), any())
 
+        // When & Then
         assertDoesNotThrow {
-            createAccountService.createAccount(request)
+            service.createAccount(request)
         }
-
-        verify(appUserRepository).findById(1)
         verify(accountRepository).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve criar conta com descrição personalizada")
-    fun `should create account with custom description`() {
-        val request = CreateAccountRequest(
-            name = "Conta Poupança",
-            description = "Conta para guardar dinheiro",
-            balance = "1000.00",
-            userId = 1
-        )
-
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountName = "Conta Poupança", accountDescription = "Conta para guardar dinheiro")
-        )
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve criar conta com moeda diferente")
-    fun `should create account with different currency`() {
-        val request = CreateAccountRequest(
-            name = "Conta USD",
-            balance = "1000.00",
-            currency = "USD",
-            userId = 1
-        )
-
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountName = "Conta USD", accountCurrency = "USD")
-        )
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve criar conta com descrição longa (boundary test)")
-    fun `should create account with long description`() {
-        val longDescription = "D".repeat(255) // Descrição de 255 caracteres (limite da coluna)
-        val request = CreateAccountRequest(
-            name = "Conta com Descrição Longa",
-            description = longDescription,
-            balance = "500.00",
-            userId = 1
-        )
-
-        `when`(appUserRepository.findById(1)).thenReturn(Optional.of(user))
-        `when`(accountRepository.save(any(Account::class.java))).thenReturn(
-            account.copy(accountName = "Conta com Descrição Longa", accountDescription = longDescription)
-        )
-
-        assertDoesNotThrow {
-            createAccountService.createAccount(request)
-        }
-
-        verify(appUserRepository).findById(1)
-        verify(accountRepository).save(any(Account::class.java))
+        verify(createBalanceHistory).createBalanceHistory(anyInt(), any(), any())
     }
 }

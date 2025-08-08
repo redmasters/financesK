@@ -8,12 +8,18 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.junit.jupiter.api.extension.ExtendWith
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
+import io.red.financesK.transaction.controller.request.SearchTransactionFilter
+import io.red.financesK.transaction.controller.request.UpdateTransactionRequest
 import io.red.financesK.transaction.controller.response.TransactionResponse
+import io.red.financesK.transaction.model.InstallmentInfo
 import io.red.financesK.transaction.service.create.CreateTransactionService
 import io.red.financesK.transaction.service.search.SearchTransactionService
 import io.red.financesK.transaction.service.update.UpdateTransactionService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.http.HttpStatus
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -40,15 +46,22 @@ class TransactionControllerTest {
             description = "Compra",
             amount = BigDecimal(100.0),
             type = "EXPENSE",
+            status = "PENDING",
             categoryId = 1,
             dueDate = LocalDate.of(2025, 8, 4),
             notes = null,
             recurrencePattern = null,
-            totalInstallments = 1,
-            userId = 1
+            totalInstallments = 0,
+            userId = 1,
+            accountId = 1
         )
+
         Mockito.doNothing().`when`(createTransactionService).execute(request)
-        assertDoesNotThrow { transactionController.create(request) }
+
+        val response = transactionController.create(request)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        Mockito.verify(createTransactionService).execute(request)
     }
 
     @Test
@@ -96,55 +109,137 @@ class TransactionControllerTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao buscar transação inexistente")
-    fun `should throw exception when searching for non-existent transaction`() {
-        val id = 999
-        Mockito.`when`(searchTransactionService.searchById(id)).thenReturn(null)
-        val response = transactionController.getById(id)
-        assertEquals(404, response.statusCode.value())
-    }
-
-    @Test
-    @DisplayName("Deve buscar transação por id com sucesso")
+    @DisplayName("Deve buscar transação por ID com sucesso")
     fun `should get transaction by id successfully`() {
-        val id = 3
-        val responseMock = TransactionResponse(
-            id = id,
-            description = "Compra",
-            amount = BigDecimal(100.0),
-            downPayment = null,
+        val transactionId = 1
+        val expectedResponse = TransactionResponse(
+            id = transactionId,
+            description = "Compra de supermercado",
+            amount = BigDecimal("150.00"),
             type = "EXPENSE",
             status = "PENDING",
             categoryId = 1,
             dueDate = LocalDate.of(2025, 8, 4),
             createdAt = Instant.now(),
-            userId = 1,
+            notes = "Compra do mês",
+            recurrencePattern = null,
             installmentInfo = null,
-            notes = null,
-            recurrencePattern = null
+            userId = 1
         )
-        Mockito.`when`(searchTransactionService.searchById(id)).thenReturn(responseMock)
-        val response = transactionController.getById(id)
-        assertEquals(200, response.statusCode.value())
-        assertEquals(responseMock, response.body)
+
+        Mockito.`when`(searchTransactionService.searchById(transactionId)).thenReturn(expectedResponse)
+
+        val response = transactionController.getById(transactionId)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(expectedResponse, response.body)
+        Mockito.verify(searchTransactionService).searchById(transactionId)
     }
 
     @Test
-    @DisplayName("Deve criar transação parcelada com sucesso")
-    fun `should create installment transaction successfully`() {
+    @DisplayName("Deve retornar 404 quando transação não for encontrada")
+    fun `should return 404 when transaction not found`() {
+        val transactionId = 999
 
-        val request = CreateTransactionRequest(
-            description = "Compra parcelada",
-            amount = BigDecimal(120.0),
+        Mockito.`when`(searchTransactionService.searchById(transactionId)).thenReturn(null)
+
+        val response = transactionController.getById(transactionId)
+
+        assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+        Mockito.verify(searchTransactionService).searchById(transactionId)
+    }
+
+    @Test
+    @DisplayName("Deve buscar transações com filtros com sucesso")
+    fun `should search transactions with filters successfully`() {
+        val transactions = listOf(
+            TransactionResponse(
+                id = 1,
+                description = "Compra 1",
+                amount = BigDecimal("100.00"),
+                type = "EXPENSE",
+                status = "PENDING",
+                categoryId = 1,
+                dueDate = LocalDate.of(2025, 8, 4),
+                createdAt = Instant.now(),
+                notes = null,
+                recurrencePattern = null,
+                installmentInfo = null,
+                userId = 1
+            )
+        )
+        val page = PageImpl(transactions, PageRequest.of(0, 10), 1)
+
+        Mockito.`when`(searchTransactionService.execute(Mockito.any(SearchTransactionFilter::class.java), Mockito.any())).thenReturn(page)
+
+        val response = transactionController.search(
+            description = "Compra",
+            amount = BigDecimal("100.00"),
+            downPayment = null,
             type = "EXPENSE",
             categoryId = 1,
-            dueDate = LocalDate.of(2025, 8, 4),
+            status = "PENDING",
+            startDate = null,
+            endDate = null,
+            dueDate = null,
             notes = null,
-            recurrencePattern = "MONTHLY",
-            totalInstallments = 12,
+            recurrencePattern = null,
+            totalInstallments = null,
             userId = 1,
+            hasDownPayment = null,
+            isInstallment = null,
+            categoryName = null,
+            minAmount = null,
+            maxAmount = null,
+            currentMonth = null,
+            currentWeek = null,
+            currentYear = null,
+            page = 0,
+            size = 10
         )
-        Mockito.doNothing().`when`(createTransactionService).execute(request)
-        assertDoesNotThrow { transactionController.create(request) }
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertNotNull(response.body)
+        assertEquals(1, response.body!!.content.size)
+    }
+
+    @Test
+    @DisplayName("Deve atualizar transação com sucesso")
+    fun `should update transaction successfully`() {
+        val transactionId = 1
+        val request = UpdateTransactionRequest(
+            description = "Compra atualizada",
+            amount = BigDecimal("200.00"),
+            type = "EXPENSE",
+            status = "PAID",
+            categoryId = 2,
+            dueDate = LocalDate.of(2025, 8, 5),
+            notes = "Compra atualizada",
+            recurrencePattern = null,
+            totalInstallments = null,
+            currentInstallment = null
+        )
+
+        val mockResponse = TransactionResponse(
+            id = transactionId,
+            description = "Compra atualizada",
+            amount = BigDecimal("200.00"),
+            type = "EXPENSE",
+            status = "PAID",
+            categoryId = 2,
+            dueDate = LocalDate.of(2025, 8, 5),
+            createdAt = Instant.now(),
+            notes = "Compra atualizada",
+            recurrencePattern = null,
+            installmentInfo = null,
+            userId = 1
+        )
+
+        Mockito.`when`(updateTransactionService.execute(transactionId, request)).thenReturn(mockResponse)
+
+        val response = transactionController.update(transactionId, request)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        Mockito.verify(updateTransactionService).execute(transactionId, request)
     }
 }

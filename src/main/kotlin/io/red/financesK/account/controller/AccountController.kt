@@ -19,7 +19,7 @@ class AccountController(
     @PostMapping
     fun createAccount(@RequestBody request: CreateAccountRequest): ResponseEntity<Void> {
         createAccountService.createAccount(request)
-        return ResponseEntity.ok().build()
+        return ResponseEntity.status(201).build()
     }
 
     @PutMapping("/{accountId}")

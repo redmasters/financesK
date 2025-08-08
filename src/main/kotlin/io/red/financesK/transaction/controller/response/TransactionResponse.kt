@@ -11,6 +11,7 @@ class TransactionResponse(
     val amount: BigDecimal,
     val downPayment: BigDecimal? = null,
     val type: String,
+    val operationType: String? = null,
     val status: String?,
     val categoryId: Int,
     val dueDate: LocalDate,

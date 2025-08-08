@@ -1,11 +1,14 @@
 package io.red.financesK.account.service.search
 
+import io.red.financesK.account.balance.controller.response.BalanceAccountResponse
+import io.red.financesK.account.balance.controller.response.BalanceSummaryResponse
 import io.red.financesK.account.controller.response.AccountResponse
 import io.red.financesK.account.model.Account
 import io.red.financesK.account.repository.AccountRepository
 import io.red.financesK.user.repository.AppUserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 
 @Service
 class SearchAccountService(
@@ -27,10 +30,10 @@ class SearchAccountService(
         return accounts.map { account ->
             AccountResponse(
                 accountId = account.accountId,
-                name = account.accountName,
+                name = account.accountName ?: "",
                 description = account.accountDescription,
                 balance = account.accountInitialBalance?.toString(),
-                currency = account.accountCurrency,
+                currency = account.accountCurrency ?: "BRL",
                 userId = user.id
             )
         }
@@ -45,5 +48,43 @@ class SearchAccountService(
         }
 
         return account
+    }
+
+    fun getBalanceByAccountList(accountIds: List<Int>): List<BalanceAccountResponse> {
+        log.info("m='getBalanceByAccountList', action='getting balance for account list', accountIds='{}'", accountIds)
+
+        val accounts = accountRepository.findAllById(accountIds)
+        if (accounts.isEmpty()) {
+            log.warn("m='getBalanceByAccountList', action='no accounts found for provided ids'")
+            return emptyList()
+        }
+
+        return accounts.map { account ->
+            BalanceAccountResponse(
+                accountId = account.accountId,
+                balance = account.accountInitialBalance?.toString() ?: "0.00",
+                currency = account.accountCurrency,
+                userId = account.userId?.id ?: 0,
+                updatedAt = account.updatedAt?.toString() ?: "N/A"
+            )
+        }
+
+    }
+
+    fun getBalanceBy(
+        userId: Int,
+        startDate: String,
+        endDate: String,
+        accountIds: List<Int>
+    ): BalanceSummaryResponse {
+        log.info(
+            "m='getBalanceBy', action='getting balance summary by user and date range and accounts', userId='{}', startDate='{}', endDate='{}', accountIds='{}'",
+            userId, startDate, endDate, accountIds
+        )
+
+        return accountRepository.getTotalBalanceWithLastUpdateByUserAndDateRangeAndAccounts(
+            userId, LocalDate.parse(startDate), LocalDate.parse(endDate), accountIds
+        )
+
     }
 }

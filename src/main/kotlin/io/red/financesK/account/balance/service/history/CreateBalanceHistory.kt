@@ -4,6 +4,7 @@ import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.account.balance.model.AccountBalanceHistory
 import io.red.financesK.account.balance.repository.AccountBalanceHistoryRepository
 import io.red.financesK.account.service.search.SearchAccountService
+import io.red.financesK.transaction.model.Transaction
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -15,14 +16,18 @@ class CreateBalanceHistory(
 ) {
     private val log = LoggerFactory.getLogger(CreateBalanceHistory::class.java)
 
-    fun createBalanceHistory(accountId: Int?, amount: BigDecimal, operationType: AccountOperationType) {
+    fun createBalanceHistory(
+        accountId: Int?, amount: BigDecimal, operationType: AccountOperationType,
+        transactionId: Transaction?
+    ) {
         val account = searchAccountService.searchAccountById(accountId)
         require(account.accountId != null) { "Account with id $accountId not found" }
 
         val balanceHistory = AccountBalanceHistory(
             account = account,
+            transactionId = transactionId,
             amount = amount,
-            operationType = AccountOperationType.fromString(operationType.toString())
+            operationType = AccountOperationType.fromString(operationType.toString()),
         )
         accountBalanceHistoryRepository.save(balanceHistory)
         log.info(

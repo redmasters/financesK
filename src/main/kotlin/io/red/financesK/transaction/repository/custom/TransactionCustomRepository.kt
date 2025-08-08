@@ -1,23 +1,24 @@
 package io.red.financesK.transaction.repository.custom
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.red.financesK.transaction.model.Transaction
+import io.red.financesK.account.balance.enums.AccountOperationType
+import io.red.financesK.account.model.Account
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
 import io.red.financesK.transaction.enums.TransactionType
 import io.red.financesK.transaction.model.Category
 import io.red.financesK.transaction.model.InstallmentInfo
+import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.user.model.AppUser
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.core.RowMapper
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
-import java.util.HashMap
 
 @Repository
 class TransactionCustomRepository(
@@ -197,15 +198,29 @@ class TransactionCustomRepository(
                 description = rs.getString("description"),
                 amount = rs.getBigDecimal("amount"),
                 downPayment = rs.getBigDecimal("down_payment"),
-                type = rs.getString("type")?.let { TransactionType.fromString(it) },
+                type = rs.getString("transaction_type")?.let { TransactionType.fromString(it) },
+                operationType = rs.getString("transaction_operation_type")?.let { AccountOperationType.fromString(it) },
                 status = rs.getString("payment_status")?.let { PaymentStatus.valueOf(it) } ?: PaymentStatus.PENDING,
                 categoryId = category,
                 dueDate = rs.getDate("due_date").toLocalDate(),
                 createdAt = rs.getTimestamp("created_at")?.toInstant(),
-                userId = userId,
-                installmentInfo = installmentInfo,
+                updatedAt = rs.getTimestamp("updated_at")?.toInstant(),
                 notes = rs.getString("notes"),
-                recurrencePattern = rs.getString("recurrence_pattern")?.let { RecurrencePattern.fromString(it) }
+                recurrencePattern = rs.getString("recurrence_pattern")?.let { RecurrencePattern.fromString(it) },
+                installmentInfo = installmentInfo,
+                userId = userId,
+                accountId = if (rs.getObject("account_id") != null) {
+                    Account(
+                        accountId = rs.getInt("account_id"),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    )
+                } else null
             )
         }
 

@@ -1,5 +1,7 @@
 package io.red.financesK.transaction.service.update
 
+import io.red.financesK.account.balance.enums.AccountOperationType
+import io.red.financesK.account.balance.service.update.UpdateBalanceService
 import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.transaction.controller.request.UpdateTransactionRequest
 import io.red.financesK.transaction.controller.response.TransactionResponse
@@ -20,7 +22,8 @@ import java.time.Instant
 class UpdateTransactionService(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
-    private val appUserRepository: AppUserRepository
+    private val appUserRepository: AppUserRepository,
+    private val updateBalanceService: UpdateBalanceService
 ) {
     private val log = LoggerFactory.getLogger(UpdateTransactionService::class.java)
 
@@ -31,24 +34,21 @@ class UpdateTransactionService(
             ValidationException("Transaction with id $id not found")
         }
 
-        // Validações
         request.amount?.let { amount ->
             if (amount <= BigDecimal.ZERO) {
                 throw ValidationException("Transaction amount must be greater than zero")
             }
         }
 
-        // Buscar categoria se foi fornecida
         val category = request.categoryId?.let { categoryId ->
             categoryRepository.findById(categoryId).orElseThrow {
                 ValidationException("Category with id $categoryId not found")
             }
         } ?: existingTransaction.categoryId
 
-        // Buscar usuário se foi fornecido (opcional - geralmente não seria alterado)
         val user = existingTransaction.userId
+        val account = existingTransaction.accountId ?: throw ValidationException("Transaction must be associated with an account")
 
-        // Validar e converter tipo de transação
         val transactionType = request.type?.let { typeStr ->
             try {
                 TransactionType.valueOf(typeStr.uppercase())
@@ -57,7 +57,6 @@ class UpdateTransactionService(
             }
         } ?: existingTransaction.type
 
-        // Validar e converter status de pagamento
         val paymentStatus = request.status?.let { statusStr ->
             try {
                 PaymentStatus.valueOf(statusStr.uppercase())
@@ -66,15 +65,16 @@ class UpdateTransactionService(
             }
         } ?: existingTransaction.status
 
-        // Validar e converter padrão de recorrência
         val recurrencePattern = request.recurrencePattern?.let { patternStr ->
-            RecurrencePattern.fromString(patternStr) ?: throw ValidationException("Invalid recurrence pattern: $patternStr")
+            RecurrencePattern.fromString(patternStr)
+                ?: throw ValidationException("Invalid recurrence pattern: $patternStr")
         } ?: existingTransaction.recurrencePattern
 
-        // Criar nova informação de parcelas se necessário
         val installmentInfo = if (request.totalInstallments != null || request.currentInstallment != null) {
-            val totalInstallments = request.totalInstallments ?: existingTransaction.installmentInfo?.totalInstallments ?: 0
-            val currentInstallment = request.currentInstallment ?: existingTransaction.installmentInfo?.currentInstallment ?: 1
+            val totalInstallments =
+                request.totalInstallments ?: existingTransaction.installmentInfo?.totalInstallments ?: 0
+            val currentInstallment =
+                request.currentInstallment ?: existingTransaction.installmentInfo?.currentInstallment ?: 1
             val installmentValue = request.amount ?: existingTransaction.amount
 
             if (totalInstallments > 1 && currentInstallment > totalInstallments) {
@@ -90,13 +90,13 @@ class UpdateTransactionService(
             existingTransaction.installmentInfo
         }
 
-        // Criar transação atualizada
         val updatedTransaction = Transaction(
             id = existingTransaction.id,
             description = request.description ?: existingTransaction.description,
             amount = request.amount ?: existingTransaction.amount,
             downPayment = request.downPayment ?: existingTransaction.downPayment,
             type = transactionType,
+            operationType = AccountOperationType.fromString(request.operationType ?: existingTransaction.operationType?.name ?: "DEBIT"),
             status = paymentStatus,
             categoryId = category,
             dueDate = request.dueDate ?: existingTransaction.dueDate,
@@ -104,10 +104,13 @@ class UpdateTransactionService(
             notes = request.notes ?: existingTransaction.notes,
             recurrencePattern = recurrencePattern,
             installmentInfo = installmentInfo,
-            userId = user
+            userId = user,
+            accountId = account
         )
 
         val savedTransaction = transactionRepository.save(updatedTransaction)
+        updateBalanceService.executeOperation(savedTransaction)
+
         log.info("m='execute', acao='transação atualizada com sucesso', id='{}'", id)
 
         return TransactionResponse(

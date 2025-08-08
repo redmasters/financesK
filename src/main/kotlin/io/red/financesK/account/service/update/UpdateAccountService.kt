@@ -7,6 +7,7 @@ import io.red.financesK.user.repository.AppUserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.RoundingMode
+import java.time.Instant
 
 @Service
 class UpdateAccountService(
@@ -31,13 +32,14 @@ class UpdateAccountService(
         account.accountCurrency = request.currency
         account.userId = user
         val updatedAccount = accountRepository.save(account)
+
         log.info("m='updateAccount', action='account updated successfully', account='{}'", account)
         return UpdateAccountResponse(
             accountId = updatedAccount.accountId,
-            name = account.accountName,
-            description = account.accountDescription,
+            name = account.accountName ?: "",
+            description = account.accountDescription ?: "",
             balance = account.accountInitialBalance?.toString(),
-            currency = account.accountCurrency,
+            currency = account.accountCurrency ?: "BRL",
             userId = user.id
         )
     }
@@ -55,6 +57,7 @@ class UpdateAccountService(
         }
         account.accountInitialBalance = newBalance.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_EVEN)
             ?: throw IllegalArgumentException("Invalid balance format: $newBalance")
+        account.updatedAt = Instant.now()
         val updatedAccount = accountRepository.save(account)
         log.info(
             "m='updateAccountBalance', action='account balance updated successfully', account='{}'",
@@ -62,11 +65,12 @@ class UpdateAccountService(
         )
         return UpdateAccountResponse(
             accountId = updatedAccount.accountId,
-            name = updatedAccount.accountName,
-            description = updatedAccount.accountDescription,
+            name = updatedAccount.accountName ?: "",
+            description = updatedAccount.accountDescription ?: "",
             balance = updatedAccount.accountInitialBalance?.toString(),
-            currency = updatedAccount.accountCurrency,
-            userId = updatedAccount.userId?.id ?: throw IllegalArgumentException("User ID not found")
+            currency = updatedAccount.accountCurrency ?: "BRL",
+            userId = updatedAccount.userId?.id ?: throw IllegalArgumentException("User ID not found"),
+            updatedAt = updatedAccount.updatedAt?.toString() ?: "N/A"
         )
     }
 }

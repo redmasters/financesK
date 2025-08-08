@@ -1,6 +1,7 @@
 package io.red.financesK.transaction.model
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType
+import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.account.model.Account
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
@@ -32,8 +33,12 @@ data class Transaction(
     val downPayment: BigDecimal? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 10)
+    @Column(name = "transaction_type", nullable = false, length = 20)
     val type: TransactionType? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_operation_type", nullable = false, length = 20)
+    val operationType: AccountOperationType? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false, length = 10)

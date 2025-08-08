@@ -1,7 +1,7 @@
 package io.red.financesK.transaction.service.create
 
 import io.red.financesK.account.balance.enums.AccountOperationType
-import io.red.financesK.account.balance.service.update.OperationBalanceService
+import io.red.financesK.account.balance.service.update.UpdateBalanceService
 import io.red.financesK.account.service.search.SearchAccountService
 import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
@@ -30,7 +30,7 @@ class CreateTransactionService(
     private val categoryRepository: CategoryRepository,
     private val appUserRepository: AppUserRepository,
     private val searchAccountService: SearchAccountService,
-    private val operationBalanceService: OperationBalanceService
+    private val updateBalanceService: UpdateBalanceService
 ) {
     private val log = LoggerFactory.getLogger(CreateTransactionService::class.java)
 
@@ -126,6 +126,7 @@ class CreateTransactionService(
                 amount = installmentValue,
                 downPayment = request.downPayment,
                 type = TransactionType.fromString(request.type),
+                operationType = request.operationType?.let { AccountOperationType.fromString(it) },
                 status = request.status?.let { PaymentStatus.fromString(it) } ?: PaymentStatus.PENDING,
                 categoryId = category,
                 dueDate = transactionDate,
@@ -197,6 +198,7 @@ class CreateTransactionService(
             description = request.description,
             amount = request.amount,
             type = TransactionType.fromString(request.type),
+            operationType = request.operationType?.let { AccountOperationType.fromString(it) },
             status = request.status?.let { PaymentStatus.fromString(it) } ?: PaymentStatus.PENDING,
             categoryId = category,
             dueDate = request.dueDate,
@@ -209,33 +211,10 @@ class CreateTransactionService(
         )
 
         transactionRepository.save(transaction)
-        updateBalance(transaction)
+        updateBalanceService.executeOperation(transaction)
         log.info("m='createSingleTransaction',acao='transação única criada'")
     }
 
-    fun updateBalance(transaction: Transaction) {
-        log.info("m='updateBalance', acao='atualizando saldo após criação de transação', transaction='{}'", transaction)
 
-        if (transaction.status != PaymentStatus.PAID) {
-            log.info("m='updateBalance', acao='transação não está paga, saldo não será atualizado'")
-            return
-        }
-
-        if (transaction.type == TransactionType.EXPENSE) {
-            log.info("m='updateBalance', acao='subtraindo saldo para transação de despesa'")
-
-            operationBalanceService.subtractBalance(
-                accountId = transaction.accountId?.accountId,
-                amount = transaction.amount,
-                operationType = AccountOperationType.PAYMENT
-            )
-        } else if (transaction.type == TransactionType.INCOME) {
-            operationBalanceService.sumBalance(
-                accountId = transaction.accountId?.accountId,
-                amount = transaction.amount,
-                operationType = AccountOperationType.DEPOSIT
-            )
-        }
-    }
 
 }

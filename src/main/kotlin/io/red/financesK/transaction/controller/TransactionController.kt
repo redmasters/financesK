@@ -25,7 +25,7 @@ class TransactionController(
     @PostMapping
     fun create(@RequestBody request: CreateTransactionRequest): ResponseEntity<Void> {
         createTransactionService.execute(request)
-        return ResponseEntity.ok().build()
+        return ResponseEntity.status(201).build()
     }
 
     @GetMapping("/{id}")
