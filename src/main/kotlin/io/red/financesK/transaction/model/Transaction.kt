@@ -23,32 +23,32 @@ data class Transaction(
     val id: Int? = null,
 
     @Column(name = "description", nullable = false)
-    val description: String,
+    var description: String,
 
     @Column(name = "amount", nullable = false)
-    val amount: Int,
+    var amount: Int,
 
     @Column(name = "down_payment", precision = 10, scale = 2)
-    val downPayment: Int? = null,
+    var downPayment: Int? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false, length = 20)
-    val type: TransactionType? = null,
+    var type: TransactionType? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_operation_type", nullable = false, length = 20)
-    val operationType: AccountOperationType? = null,
+    var operationType: AccountOperationType? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false, length = 10)
-    val status: PaymentStatus? = PaymentStatus.PENDING,
+    var status: PaymentStatus? = PaymentStatus.PENDING,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    val categoryId: Category,
+    var categoryId: Category,
 
     @Column(name = "due_date", nullable = false)
-    val dueDate: LocalDate,
+    var dueDate: LocalDate,
 
     @Column(name = "created_at")
     val createdAt: Instant? = null,
@@ -57,7 +57,7 @@ data class Transaction(
     val updatedAt: Instant? = null,
 
     @Column(name = "notes")
-    val notes: String? = null,
+    var notes: String? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "recurrence_pattern")

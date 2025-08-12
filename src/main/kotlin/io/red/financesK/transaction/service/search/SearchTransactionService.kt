@@ -1,5 +1,6 @@
 package io.red.financesK.transaction.service.search
 
+import io.red.financesK.global.exception.NotFoundException
 import io.red.financesK.global.utils.ConvertMoneyUtils
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
@@ -7,7 +8,6 @@ import io.red.financesK.transaction.controller.response.TransactionResponse
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.SortDirection
 import io.red.financesK.transaction.enums.TransactionSortField
-import io.red.financesK.transaction.enums.TransactionType
 import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.repository.TransactionRepository
 import org.slf4j.LoggerFactory
@@ -36,42 +36,6 @@ class SearchTransactionService(
         log.info("m='getIncomeExpenseBalance', acao='balance calculado', totalIncome='${result.totalIncome}', totalExpense='${result.totalExpense}', balance='${result.balance}'")
 
         return result
-    }
-
-    fun sumAmountByUserIdAndTypeAndDateRange(
-        userId: Int,
-        type: String,
-        status: String,
-        startDate: String,
-        endDate: String
-    ): AmountIncomeExpenseResponse {
-        val startDateLocal = LocalDate.parse(startDate)
-        val endDateLocal = LocalDate.parse(endDate)
-        val transactionType = TransactionType.fromString(type)
-        val paymentStatus = PaymentStatus.fromString(status)
-
-        // Para manter compatibilidade, vamos buscar ambos os tipos e calcular
-        val incomeAmount = if (transactionType == TransactionType.INCOME) {
-            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
-                userId, TransactionType.INCOME, paymentStatus, startDateLocal, endDateLocal
-            ) ?: 0
-        } else 0
-
-        val expenseAmount = if (transactionType == TransactionType.EXPENSE) {
-            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
-                userId, TransactionType.EXPENSE, paymentStatus, startDateLocal, endDateLocal
-            ) ?: 0
-        } else 0
-
-        val totalIncome = incomeAmount
-        val totalExpense = expenseAmount
-        val balance = totalIncome - totalExpense
-
-        return AmountIncomeExpenseResponse(
-            totalIncome = totalIncome,
-            totalExpense = totalExpense,
-            balance = balance
-        )
     }
 
     fun searchTransactionsPaginated(
@@ -115,30 +79,6 @@ class SearchTransactionService(
         }
     }
 
-    fun searchTransactionsCount(filter: SearchTransactionFilter): Long {
-        log.info("m='searchTransactionsCount', acao='contando transações', userId='${filter.userId}'")
-
-        // Preparar descrição para busca com wildcards (case-sensitive por enquanto)
-        val searchDescription = filter.description?.let { "%${it}%" }
-
-        val count = transactionRepository.countTransactionsByFilters(
-            userId = filter.userId,
-            startDate = filter.startDate,
-            endDate = filter.endDate,
-            type = filter.type,
-            status = filter.status,
-            categoryId = filter.categoryId,
-            isRecurring = filter.isRecurring,
-            hasInstallments = filter.hasInstallments,
-            description = searchDescription,
-            minAmount = filter.minAmount,
-            maxAmount = filter.maxAmount
-        )
-
-        log.info("m='searchTransactionsCount', acao='contagem concluida', count='$count'")
-        return count
-    }
-
     private fun convertToTransactionResponse(transaction: Transaction): TransactionResponse {
         return TransactionResponse(
             id = transaction.id!!,
@@ -148,17 +88,26 @@ class SearchTransactionService(
             type = transaction.type!!,
             operationType = transaction.operationType!!,
             status = transaction.status!!,
-            categoryId = transaction.categoryId?.id ?: 0,
-            categoryName = transaction.categoryId?.name,
+            categoryId = transaction.categoryId.id ?: 0,
+            categoryName = transaction.categoryId.name,
             dueDate = transaction.dueDate,
             createdAt = transaction.createdAt,
             updatedAt = transaction.updatedAt,
             notes = transaction.notes,
             recurrencePattern = transaction.recurrencePattern,
             installmentInfo = transaction.installmentInfo,
-            userId = transaction.userId?.id ?: 0,
+            userId = transaction.userId.id ?: 0,
             accountId = transaction.accountId?.accountId ?: 0,
             accountName = transaction.accountId?.accountName
         )
+    }
+
+    fun getTransactionById(transactionId: Int?): TransactionResponse {
+        log.info("m='findTransactionById', acao='buscando transação por ID', transactionId='$transactionId'")
+
+        val transaction = transactionRepository.findById(transactionId!!)
+            .orElseThrow { NotFoundException("Transaction with id $transactionId not found") }
+        log.info("m='findTransactionById', acao='transação encontrada', transaction='$transaction'")
+        return convertToTransactionResponse(transaction)
     }
 }

@@ -2,15 +2,16 @@ package io.red.financesK.transaction
 
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
-import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
-import io.red.financesK.transaction.controller.response.CreateTransactionResponse
-import io.red.financesK.transaction.controller.response.TransactionResponse
+import io.red.financesK.transaction.controller.request.UpdateTransactionRequest
+import io.red.financesK.transaction.controller.response.*
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.SortDirection
 import io.red.financesK.transaction.enums.TransactionSortField
 import io.red.financesK.transaction.enums.TransactionType
 import io.red.financesK.transaction.service.create.CreateTransactionService
+import io.red.financesK.transaction.service.delete.DeleteTransactionService
 import io.red.financesK.transaction.service.search.SearchTransactionService
+import io.red.financesK.transaction.service.update.UpdateTransactionService
 import org.springframework.data.domain.Page
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -21,7 +22,9 @@ import java.time.LocalDate
 @CrossOrigin(origins = ["*"])
 class TransactionController(
     private val createTransactionService: CreateTransactionService,
-    private val searchTransactionService: SearchTransactionService
+    private val searchTransactionService: SearchTransactionService,
+    private val updateTransactionService: UpdateTransactionService,
+    private val deleteTransactionService: DeleteTransactionService
 ) {
     @PostMapping
     fun createTransaction(
@@ -39,18 +42,12 @@ class TransactionController(
             })
     }
 
-    @GetMapping("/sumAmount")
-    fun getSumAmountByUserIdAndTypeAndDateRange(
-        @RequestParam userId: Int,
-        @RequestParam type: String,
-        @RequestParam status: String,
-        @RequestParam startDate: String,
-        @RequestParam endDate: String
-    ): ResponseEntity<AmountIncomeExpenseResponse> {
-        val sumAmount = searchTransactionService.sumAmountByUserIdAndTypeAndDateRange(
-            userId, type, status, startDate, endDate
-        )
-        return ResponseEntity.ok(sumAmount)
+    @GetMapping("/{transactionId}")
+    fun getTransactionById(
+        @PathVariable transactionId: Int
+    ): ResponseEntity<TransactionResponse> {
+        val transaction = searchTransactionService.getTransactionById(transactionId)
+        return ResponseEntity.ok(transaction)
     }
 
     @GetMapping("/stats/income-expense-balance")
@@ -117,36 +114,21 @@ class TransactionController(
         return ResponseEntity.ok(result)
     }
 
-    @GetMapping("/search/count")
-    fun getTransactionsCount(
-        @RequestParam userId: Int,
-        @RequestParam startDate: String,
-        @RequestParam endDate: String,
-        @RequestParam(required = false) type: String?,
-        @RequestParam(required = false) status: String?,
-        @RequestParam(required = false) categoryId: Int?,
-        @RequestParam(required = false) isRecurring: Boolean?,
-        @RequestParam(required = false) hasInstallments: Boolean?,
-        @RequestParam(required = false) description: String?,
-        @RequestParam(required = false) minAmount: Int?,
-        @RequestParam(required = false) maxAmount: Int?
-    ): ResponseEntity<Map<String, Long>> {
-
-        val filter = SearchTransactionFilter(
-            userId = userId,
-            startDate = LocalDate.parse(startDate),
-            endDate = LocalDate.parse(endDate),
-            type = type?.let { TransactionType.valueOf(it.uppercase()) },
-            status = status?.let { PaymentStatus.valueOf(it.uppercase()) },
-            categoryId = categoryId,
-            isRecurring = isRecurring,
-            hasInstallments = hasInstallments,
-            description = description,
-            minAmount = minAmount,
-            maxAmount = maxAmount
-        )
-
-        val count = searchTransactionService.searchTransactionsCount(filter)
-        return ResponseEntity.ok(mapOf("totalCount" to count))
+    @PutMapping("/{transactionId}")
+    fun updateTransaction(
+        @PathVariable transactionId: Int,
+        @RequestBody updateRequest: UpdateTransactionRequest
+    ): ResponseEntity<UpdateTransactionResponse> {
+        val response = updateTransactionService.updateTransaction(transactionId, updateRequest)
+        return ResponseEntity.ok(response)
     }
+
+    @DeleteMapping("/{transactionId}")
+    fun deleteTransaction(
+        @PathVariable transactionId: Int
+    ): ResponseEntity<DeleteTransactionResponse> {
+        deleteTransactionService.deleteTransaction(transactionId)
+        return ResponseEntity.noContent().build()
+    }
+
 }
