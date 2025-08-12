@@ -4,34 +4,21 @@ import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
 import io.red.financesK.transaction.enums.TransactionType
-import io.red.financesK.transaction.model.InstallmentInfo
-import jakarta.validation.constraints.Positive
 import java.math.BigDecimal
 import java.time.LocalDate
 
-data class UpdateTransactionRequest(
+data class SearchTransactionRequest(
     val description: String? = null,
-
-    @field:Positive(message = "Amount must be positive")
-    val amount: BigDecimal? = null,
-
-    val downPayment: BigDecimal? = null,
-
+    val minAmount: BigDecimal? = null,
+    val maxAmount: BigDecimal? = null,
     val type: TransactionType? = null,
-
     val operationType: AccountOperationType? = null,
-
     val status: PaymentStatus? = null,
-
     val categoryId: Int? = null,
-
-    val dueDate: LocalDate? = null,
-
-    val notes: String? = null,
-
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val recurrencePattern: RecurrencePattern? = null,
-
-    val installmentInfo: InstallmentInfo? = null,
-
-    val accountId: Int? = null
+    val userId: Int? = null,
+    val accountId: Int? = null,
+    val hasInstallments: Boolean? = null
 )

@@ -1,24 +1,20 @@
 package io.red.financesK.transaction.service.create
 
-import io.red.financesK.account.balance.enums.AccountOperationType
-import io.red.financesK.account.balance.service.update.UpdateBalanceService
 import io.red.financesK.account.service.search.SearchAccountService
 import io.red.financesK.global.exception.ValidationException
+import io.red.financesK.global.utils.ConvertMoneyUtils
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
+import io.red.financesK.transaction.controller.response.CreateTransactionResponse
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
-import io.red.financesK.transaction.enums.TransactionType
 import io.red.financesK.transaction.model.Category
 import io.red.financesK.transaction.model.InstallmentInfo
 import io.red.financesK.transaction.model.Transaction
-import io.red.financesK.transaction.repository.CategoryRepository
 import io.red.financesK.transaction.repository.TransactionRepository
+import io.red.financesK.transaction.service.search.SearchCategoryService
 import io.red.financesK.user.model.AppUser
-import io.red.financesK.user.repository.AppUserRepository
-import org.slf4j.LoggerFactory
+import io.red.financesK.user.service.search.SearchUserService
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -27,96 +23,74 @@ import java.time.temporal.ChronoUnit
 @Service
 class CreateTransactionService(
     private val transactionRepository: TransactionRepository,
-    private val categoryRepository: CategoryRepository,
-    private val appUserRepository: AppUserRepository,
-    private val searchAccountService: SearchAccountService,
-    private val updateBalanceService: UpdateBalanceService
+    private val searchCategoryService: SearchCategoryService,
+    private val searchUserService: SearchUserService,
+    private val searchAccountService: SearchAccountService
 ) {
-    private val log = LoggerFactory.getLogger(CreateTransactionService::class.java)
+    fun execute(request: CreateTransactionRequest): List<CreateTransactionResponse> {
 
-    fun execute(request: CreateTransactionRequest) {
-        log.info("m='execute', acao='criando transação', request='{}'", request)
-
-        if (request.amount <= BigDecimal.ZERO) {
-            throw ValidationException("Transaction amount must be greater than zero")
-        }
-
-        val category = categoryRepository.findById(request.categoryId).orElseThrow {
-            IllegalArgumentException("Category with id ${request.categoryId} not found")
-        }
-
-        val user = appUserRepository.findById(request.userId).orElseThrow {
-            IllegalArgumentException("User with id ${request.userId} not found")
-        }
-
+        val category = searchCategoryService.findCategoryById(request.categoryId)
+        val user = searchUserService.findUserById(request.userId)
 
         if (request.recurrencePattern != null) {
             when (RecurrencePattern.fromString(request.recurrencePattern)) {
-                RecurrencePattern.DAILY -> createRecurringTransactions(request, category, user, RecurrencePattern.DAILY)
-                RecurrencePattern.WEEKLY -> createRecurringTransactions(
-                    request,
-                    category,
-                    user,
-                    RecurrencePattern.WEEKLY
-                )
+                RecurrencePattern.DAILY -> {
+                    return recurringTransactions(request, category, user, RecurrencePattern.DAILY)
+                }
 
-                RecurrencePattern.MONTHLY -> createRecurringTransactions(
-                    request,
-                    category,
-                    user,
-                    RecurrencePattern.MONTHLY
-                )
+                RecurrencePattern.WEEKLY -> {
+                    return recurringTransactions(request, category, user, RecurrencePattern.WEEKLY)
+                }
 
-                RecurrencePattern.YEARLY -> createRecurringTransactions(
-                    request,
-                    category,
-                    user,
-                    RecurrencePattern.YEARLY
-                )
+                RecurrencePattern.MONTHLY -> {
+                    return recurringTransactions(request, category, user, RecurrencePattern.MONTHLY)
+                }
+
+                RecurrencePattern.YEARLY -> {
+                    return recurringTransactions(request, category, user, RecurrencePattern.YEARLY)
+                }
 
                 else -> throw ValidationException("Invalid recurrence pattern")
+
             }
         } else {
-            createSingleTransaction(request, category, user)
+            return singleTransaction(request, category, user)
         }
     }
 
-    private fun createRecurringTransactions(
+    fun recurringTransactions(
         request: CreateTransactionRequest,
         category: Category,
         user: AppUser,
-        recurrencePattern: RecurrencePattern
-    ) {
-        log.info(
-            "m='createRecurringTransactions', acao='criando transações recorrentes', pattern='{}'",
-            recurrencePattern.name
-        )
-
-        val account = searchAccountService.searchAccountById(request.accountId)
-
-        val occurrences = if (request.totalInstallments > 0) {
-            request.totalInstallments
-        } else {
-            calculateOccurrences(request.dueDate, recurrencePattern)
-        }
-        val installmentValue = if (recurrencePattern == RecurrencePattern.MONTHLY && request.totalInstallments > 1) {
-            request.amount.divide(BigDecimal(request.totalInstallments), 2, RoundingMode.HALF_DOWN)
-        } else {
-            request.amount
+        recurrence: RecurrencePattern
+    ): List<CreateTransactionResponse> {
+        val account = searchAccountService.findAccountById(request.accountId)
+        val amount = ConvertMoneyUtils.convertToCents(request.amount)
+        val occurrences = request.totalInstallments?.let {
+            if (it > 0) {
+                request.totalInstallments
+            } else {
+                calculateOcurrences(request.dueDate, recurrence)
+            }
         }
 
-        val transactions = (1..occurrences).map { occurrence ->
-            val transactionDate = calculateTransactionDate(request.dueDate, occurrence - 1, recurrencePattern)
+        val currentInstallment = request.currentInstallment ?: 1
 
-            val currentOccurrence =
-                if (request.currentInstallment != null && recurrencePattern == RecurrencePattern.MONTHLY) {
-                    request.currentInstallment
-                } else {
-                    occurrence
-                }
+        val installmentValue = if ((occurrences != null) && (occurrences > 0)) {
+            amount.div(occurrences)
+        } else {
+            amount
+        }
 
-            val description = if (occurrences > 1) {
-                "${request.description} ($currentOccurrence/$occurrences)"
+        val transactions = (currentInstallment..occurrences!!).map { occurrence ->
+            val transactionDate = calculateTransactionDate(request.dueDate, recurrence, occurrence)
+            // incrementa currentInstallment caso nao seja null
+            val currentOccurrence = request.currentInstallment?.let {
+                it + occurrence - currentInstallment
+            } ?: (occurrence)
+
+            val description = if (occurrences > 0) {
+                "${request.description} - Parcela $currentOccurrence de $occurrences"
             } else {
                 request.description
             }
@@ -124,15 +98,15 @@ class CreateTransactionService(
             Transaction(
                 description = description,
                 amount = installmentValue,
-                downPayment = request.downPayment,
-                type = TransactionType.fromString(request.type),
-                operationType = request.operationType?.let { AccountOperationType.fromString(it) },
-                status = request.status?.let { PaymentStatus.fromString(it) } ?: PaymentStatus.PENDING,
+                downPayment = request.downPayment?.let { ConvertMoneyUtils.convertToCents(it) },
+                type = request.type,
+                operationType = request.operationType,
+                status = request.status ?: PaymentStatus.PENDING,
                 categoryId = category,
                 dueDate = transactionDate,
                 createdAt = Instant.now(),
                 notes = request.notes,
-                recurrencePattern = recurrencePattern,
+                recurrencePattern = recurrence,
                 installmentInfo = if (occurrences > 1) {
                     InstallmentInfo(
                         totalInstallments = occurrences,
@@ -144,62 +118,46 @@ class CreateTransactionService(
                 accountId = account
             )
         }
-
         transactionRepository.saveAll(transactions)
-        log.info("m='createRecurringTransactions', acao='transações criadas', total='{}'", transactions.size)
-    }
 
-    private fun calculateOccurrences(startDate: LocalDate, recurrencePattern: RecurrencePattern): Int {
-        return when (recurrencePattern) {
-            RecurrencePattern.DAILY -> {
-                val endOfMonth = startDate.withDayOfMonth(startDate.lengthOfMonth())
-                ChronoUnit.DAYS.between(startDate, endOfMonth).toInt() + 1
-            }
-
-            RecurrencePattern.WEEKLY -> {
-                val endOfMonth = startDate.withDayOfMonth(startDate.lengthOfMonth())
-                val totalDays = ChronoUnit.DAYS.between(startDate, endOfMonth).toInt() + 1
-                (totalDays / 7).coerceAtLeast(1)
-            }
-
-            RecurrencePattern.MONTHLY -> {
-                val endOfYear = startDate.withDayOfYear(startDate.lengthOfYear())
-                ChronoUnit.MONTHS.between(YearMonth.from(startDate), YearMonth.from(endOfYear)).toInt() + 1
-            }
-
-            RecurrencePattern.YEARLY -> 1
+        return transactions.map { transaction ->
+            CreateTransactionResponse(
+                id = transaction.id ?: 0,
+                "Transaction created successfully",
+                transaction.createdAt ?: Instant.now()
+            )
         }
+
     }
 
     private fun calculateTransactionDate(
-        startDate: LocalDate,
-        occurrence: Int,
-        recurrencePattern: RecurrencePattern
+        dueDate: LocalDate,
+        recurrence: RecurrencePattern,
+        occurrence: Int
     ): LocalDate {
-        return when (recurrencePattern) {
-            RecurrencePattern.DAILY -> startDate.plusDays(occurrence.toLong())
-            RecurrencePattern.WEEKLY -> startDate.plusWeeks(occurrence.toLong())
-            RecurrencePattern.MONTHLY -> startDate.plusMonths(occurrence.toLong())
-            RecurrencePattern.YEARLY -> startDate.plusYears(occurrence.toLong())
+        return when (recurrence) {
+            RecurrencePattern.DAILY -> dueDate.plusDays(occurrence.toLong() - 1)
+            RecurrencePattern.WEEKLY -> dueDate.plusWeeks(occurrence.toLong() - 1)
+            RecurrencePattern.MONTHLY -> dueDate.plusMonths(occurrence.toLong() - 1)
+            RecurrencePattern.YEARLY -> dueDate.plusYears(occurrence.toLong() - 1)
         }
     }
 
-    private fun createSingleTransaction(
+    fun singleTransaction(
         request: CreateTransactionRequest,
         category: Category,
         user: AppUser
-    ) {
-        log.info("m='createSingleTransaction', acao='criando transação única'")
-
-        val account = request.accountId?.let { searchAccountService.searchAccountById(it) }
-            ?: throw ValidationException("Account ID must be provided for single transactions")
+    ): List<CreateTransactionResponse> {
+        val account = searchAccountService.findAccountById(request.accountId)
+        val amount = ConvertMoneyUtils.convertToCents(request.amount)
 
         val transaction = Transaction(
             description = request.description,
-            amount = request.amount,
-            type = TransactionType.fromString(request.type),
-            operationType = request.operationType?.let { AccountOperationType.fromString(it) },
-            status = request.status?.let { PaymentStatus.fromString(it) } ?: PaymentStatus.PENDING,
+            amount = amount,
+            downPayment = request.downPayment?.let { ConvertMoneyUtils.convertToCents(it) },
+            type = request.type,
+            operationType = request.operationType,
+            status = request.status ?: PaymentStatus.PENDING,
             categoryId = category,
             dueDate = request.dueDate,
             createdAt = Instant.now(),
@@ -211,10 +169,38 @@ class CreateTransactionService(
         )
 
         transactionRepository.save(transaction)
-        updateBalanceService.executeOperation(transaction)
-        log.info("m='createSingleTransaction',acao='transação única criada'")
+
+        return listOf(
+            CreateTransactionResponse(
+                id = transaction.id ?: 0,
+                "Transaction created successfully",
+                transaction.createdAt ?: Instant.now()
+            )
+        )
     }
+}
 
+private fun calculateOcurrences(
+    dueDate: LocalDate,
+    recurrence: RecurrencePattern
+): Int {
+    return when (recurrence) {
+        RecurrencePattern.DAILY -> {
+            val endOfMonth = dueDate.withDayOfMonth(dueDate.lengthOfMonth())
+            ChronoUnit.DAYS.between(dueDate, endOfMonth).toInt() + 1
+        }
 
+        RecurrencePattern.WEEKLY -> {
+            val endOfMonth = dueDate.withDayOfMonth(dueDate.lengthOfMonth())
+            val totalDays = ChronoUnit.DAYS.between(dueDate, endOfMonth).toInt() + 1
+            (totalDays / 7).coerceAtLeast(1)
+        }
 
+        RecurrencePattern.MONTHLY -> {
+            val endOfYear = dueDate.withDayOfYear(dueDate.lengthOfYear())
+            ChronoUnit.MONTHS.between(YearMonth.from(dueDate), YearMonth.from(endOfYear)).toInt() + 1
+        }
+
+        RecurrencePattern.YEARLY -> 1
+    }
 }

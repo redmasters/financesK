@@ -1,46 +1,39 @@
 package io.red.financesK.account.balance.repository
 
 import io.red.financesK.account.balance.model.AccountBalanceHistory
+import io.red.financesK.account.balance.enums.AccountOperationType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
 import java.math.BigDecimal
-import java.time.LocalDate
+import java.time.Instant
 
+@Repository
 interface AccountBalanceHistoryRepository : JpaRepository<AccountBalanceHistory, Int> {
 
-    @Query("""
-        SELECT COALESCE(SUM(bh.amount), 0) 
-        FROM AccountBalanceHistory bh 
-        INNER JOIN bh.account a 
-        WHERE a.userId.id = :userId 
-        AND DATE(bh.balanceTimestamp) BETWEEN :startDate AND :endDate 
-        AND bh.account.accountId IN :accountIds
-    """)
-    fun getTotalBalanceByUserAndDateRangeAndAccounts(
-        @Param("userId") userId: Int,
-        @Param("startDate") startDate: LocalDate,
-        @Param("endDate") endDate: LocalDate,
-        @Param("accountIds") accountIds: List<Int>
-    ): BigDecimal
+    fun findByAccount_AccountIdOrderByBalanceTimestampDesc(accountId: Int): List<AccountBalanceHistory>
 
-//    @Query("""
-//        SELECT new io.red.financesK.account.balance.controller.response.BalanceSummaryResponse(
-//            COALESCE(SUM(bh.amount), 0),
-//            MAX(bh.balanceTimestamp),
-//            bh.transactionId.id
-//        )
-//        FROM AccountBalanceHistory bh
-//        INNER JOIN bh.account a
-//        WHERE a.userId.id = :userId
-//        AND DATE(bh.balanceTimestamp) BETWEEN :startDate AND :endDate
-//        AND bh.account.accountId IN :accountIds
-//        group by bh.transactionId
-//    """)
-//    fun getTotalBalanceWithLastUpdateByUserAndDateRangeAndAccounts(
-//        @Param("userId") userId: Int,
-//        @Param("startDate") startDate: LocalDate,
-//        @Param("endDate") endDate: LocalDate,
-//        @Param("accountIds") accountIds: List<Int>
-//    ): List<BalanceSummaryResponse>
+    fun findByAccount_AccountIdAndOperationType(accountId: Int, operationType: AccountOperationType): List<AccountBalanceHistory>
+
+    @Query("SELECT SUM(abh.amount) FROM AccountBalanceHistory abh " +
+           "WHERE abh.account.accountId IN :accountIds " +
+           "AND abh.balanceTimestamp BETWEEN :startDate AND :endDate " +
+           "AND abh.account.userId.id = :userId")
+    fun sumBalancesByAccountIdsAndDateRange(
+        @Param("accountIds") accountIds: List<Int>,
+        @Param("startDate") startDate: Instant,
+        @Param("endDate") endDate: Instant,
+        @Param("userId") userId: Int
+    ): BigDecimal?
+
+    @Query("SELECT abh FROM AccountBalanceHistory abh " +
+           "WHERE abh.account.userId.id = :userId " +
+           "AND abh.balanceTimestamp BETWEEN :startDate AND :endDate " +
+           "ORDER BY abh.balanceTimestamp DESC")
+    fun findByUserIdAndDateRange(
+        @Param("userId") userId: Int,
+        @Param("startDate") startDate: Instant,
+        @Param("endDate") endDate: Instant
+    ): List<AccountBalanceHistory>
 }

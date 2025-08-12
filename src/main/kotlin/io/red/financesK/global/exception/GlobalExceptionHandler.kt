@@ -3,10 +3,11 @@ package io.red.financesK.global.exception
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 @ControllerAdvice
 class GlobalExceptionHandler {
@@ -27,6 +28,14 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errors" to errors))
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    @ResponseBody
+    fun handleMethodArgumentTypeMismatchException(ex: MethodArgumentTypeMismatchException): ResponseEntity<Any> {
+        val message = "Invalid parameter '${ex.name}': ${ex.value}"
+        log.info("m='handleMethodArgumentTypeMismatchException', acao='retornando bad request', mensagem='$message'")
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to message))
+    }
+
     @ExceptionHandler(Exception::class)
     @ResponseBody
     fun handleGenericException(ex: Exception): ResponseEntity<Any> {
@@ -34,4 +43,3 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "Erro interno do servidor"))
     }
 }
-

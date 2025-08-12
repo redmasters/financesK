@@ -13,7 +13,6 @@ CREATE TABLE tbl_category
 (
     id        SERIAL PRIMARY KEY,
     name      VARCHAR(50) NOT NULL UNIQUE,
-    type      VARCHAR(10) NOT NULL CHECK (type IN ('EXPENSE', 'INCOME')),
     icon      VARCHAR(50),
     color     VARCHAR(7),
     parent_id INTEGER REFERENCES tbl_category (id) -- Auto-relacionamento para hierarquia
@@ -23,11 +22,11 @@ CREATE TABLE tbl_category
 CREATE TABLE tbl_account
 (
     account_id              SERIAL PRIMARY KEY,
-    account_name            VARCHAR(100)   NOT NULL,
+    account_name            VARCHAR(100) NOT NULL,
     account_description     VARCHAR(255),
-    account_initial_balance DECIMAL(10, 2) NOT NULL,
-    account_currency        VARCHAR(3)     NOT NULL DEFAULT 'BRL',
-    user_id                 INTEGER        NOT NULL REFERENCES tbl_app_user (id),
+    account_current_balance INTEGER      NOT NULL,
+    account_currency        VARCHAR(3)   NOT NULL    DEFAULT 'BRL',
+    user_id                 INTEGER      NOT NULL REFERENCES tbl_app_user (id),
     created_at              TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at              TIMESTAMP WITH TIME ZONE
 );
@@ -37,11 +36,16 @@ CREATE TABLE tbl_transaction
 (
     id                         SERIAL PRIMARY KEY,
     description                VARCHAR(255)   NOT NULL,
-    amount                     DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
-    down_payment               DECIMAL(10, 2),
+    amount                     INTEGER NOT NULL CHECK (amount > 0),
+    down_payment               INTEGER,
     transaction_type           VARCHAR(20)    NOT NULL CHECK (transaction_type IN ('EXPENSE', 'INCOME')),
-    transaction_operation_type VARCHAR(20)    NOT NULL CHECK (transaction_operation_type IN ('INITIAL_BALANCE', 'SALARY', 'DEPOSIT', 'WITHDRAWAL', 'TRANSFER_IN', 'TRANSFER_OUT', 'INTEREST', 'FEE', 'ADJUSTMENT', 'REFUND', 'PAYMENT', 'REWARD', 'LOAN_PAYMENT', 'LOAN_DISBURSEMENT', 'DIVIDEND', 'TAX', 'OTHER')),
-    payment_status             VARCHAR(10)    NOT NULL DEFAULT 'PENDING' CHECK (payment_status IN ('PENDING', 'PAID', 'FAILED')),
+    transaction_operation_type VARCHAR(20)    NOT NULL CHECK (transaction_operation_type IN
+                                                              ('INITIAL_BALANCE', 'SALARY', 'DEPOSIT', 'WITHDRAWAL',
+                                                               'TRANSFER_IN', 'TRANSFER_OUT', 'INTEREST', 'FEE',
+                                                               'ADJUSTMENT', 'REFUND', 'PAYMENT', 'REWARD',
+                                                               'LOAN_PAYMENT', 'LOAN_DISBURSEMENT', 'DIVIDEND', 'TAX',
+                                                               'OTHER')),
+    payment_status             VARCHAR(10)    NOT NULL  DEFAULT 'PENDING' CHECK (payment_status IN ('PENDING', 'PAID', 'FAILED')),
     category_id                INTEGER        NOT NULL REFERENCES tbl_category (id),
     due_date                   DATE           NOT NULL,
     created_at                 TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -59,7 +63,7 @@ CREATE TABLE tbl_budget
     id           SERIAL PRIMARY KEY,
     user_id      INTEGER        NOT NULL REFERENCES tbl_app_user (id),
     category_id  INTEGER REFERENCES tbl_category (id),
-    amount       DECIMAL(10, 2) NOT NULL,
+    amount       INTEGER NOT NULL,
     budget_month DATE           NOT NULL,
     created_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -70,8 +74,12 @@ CREATE TABLE tbl_account_balance_history
     balance_history_id     SERIAL PRIMARY KEY,
     account_id             INTEGER        NOT NULL REFERENCES tbl_account (account_id),
     transaction_id         INTEGER REFERENCES tbl_transaction (id),
-    history_amount         DECIMAL(10, 2) NOT NULL,
-    history_operation_type VARCHAR(20)    NOT NULL CHECK (history_operation_type IN ('INITIAL_BALANCE', 'SALARY', 'DEPOSIT', 'WITHDRAWAL', 'TRANSFER_IN', 'TRANSFER_OUT', 'INTEREST', 'FEE', 'ADJUSTMENT', 'REFUND', 'PAYMENT', 'REWARD', 'LOAN_PAYMENT', 'LOAN_DISBURSEMENT', 'DIVIDEND', 'TAX', 'OTHER')),
+    history_amount         INTEGER NOT NULL,
+    history_operation_type VARCHAR(20)    NOT NULL CHECK (history_operation_type IN
+                                                          ('INITIAL_BALANCE', 'SALARY', 'DEPOSIT', 'WITHDRAWAL',
+                                                           'TRANSFER_IN', 'TRANSFER_OUT', 'INTEREST', 'FEE',
+                                                           'ADJUSTMENT', 'REFUND', 'PAYMENT', 'REWARD', 'LOAN_PAYMENT',
+                                                           'LOAN_DISBURSEMENT', 'DIVIDEND', 'TAX', 'OTHER')),
     balance_timestamp      TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

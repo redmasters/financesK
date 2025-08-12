@@ -11,7 +11,6 @@ import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.annotations.Type
 import org.hibernate.type.SqlTypes
-import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
@@ -26,11 +25,11 @@ data class Transaction(
     @Column(name = "description", nullable = false)
     val description: String,
 
-    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
-    val amount: BigDecimal,
+    @Column(name = "amount", nullable = false)
+    val amount: Int,
 
     @Column(name = "down_payment", precision = 10, scale = 2)
-    val downPayment: BigDecimal? = null,
+    val downPayment: Int? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false, length = 20)
@@ -77,5 +76,3 @@ data class Transaction(
     @JoinColumn(name = "account_id", nullable = false)
     val accountId: Account? = null
 )
-
-

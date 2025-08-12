@@ -4,7 +4,6 @@ import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.account.model.Account
 import io.red.financesK.transaction.model.Transaction
 import jakarta.persistence.*
-import java.math.BigDecimal
 import java.time.Instant
 import java.time.Instant.now
 
@@ -24,8 +23,8 @@ data class AccountBalanceHistory(
     @JoinColumn(name = "transaction_id", nullable = true, referencedColumnName = "id")
     val transactionId: Transaction? = null,
 
-    @Column(name = "history_amount", nullable = false, precision = 10, scale = 2)
-    val amount: BigDecimal? = null,
+    @Column(name = "history_amount", nullable = false)
+    val amount: Int? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "history_operation_type", nullable = false, length = 10)

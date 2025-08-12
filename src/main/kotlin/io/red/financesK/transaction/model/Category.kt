@@ -13,9 +13,6 @@ data class Category(
     @Column(name = "name", nullable = false, unique = true)
     val name: String?,
 
-    @Column(name = "type", nullable = false)
-    val type: String?, // 'EXPENSE' or 'INCOME'
-
     @Column(name = "icon")
     val icon: String? = null,
 

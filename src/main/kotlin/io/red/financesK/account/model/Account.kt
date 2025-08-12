@@ -2,7 +2,6 @@ package io.red.financesK.account.model
 
 import io.red.financesK.user.model.AppUser
 import jakarta.persistence.*
-import java.math.BigDecimal
 import java.time.Instant
 
 @Entity
@@ -19,8 +18,8 @@ data class Account(
     @Column(name = "account_description", length = 255)
     var accountDescription: String? = null,
 
-    @Column(name = "account_initial_balance", nullable = false, precision = 10, scale = 2)
-    var accountInitialBalance: BigDecimal? = null,
+    @Column(name = "account_current_balance", nullable = true)
+    var accountCurrentBalance: Int? = null,
 
     @Column(name = "account_currency", nullable = false, length = 3)
     var accountCurrency: String? = "BRL", // Default currency set to BRL

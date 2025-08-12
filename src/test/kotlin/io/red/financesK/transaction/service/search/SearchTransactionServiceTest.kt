@@ -1,322 +1,329 @@
 package io.red.financesK.transaction.service.search
 
-import io.red.financesK.account.model.Account
-import io.red.financesK.transaction.controller.request.SearchTransactionFilter
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.TransactionType
-import io.red.financesK.transaction.model.Category
-import io.red.financesK.transaction.model.Transaction
-import io.red.financesK.transaction.model.InstallmentInfo
 import io.red.financesK.transaction.repository.TransactionRepository
-import io.red.financesK.transaction.repository.custom.TransactionCustomRepository
-import io.red.financesK.user.model.AppUser
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
-import org.mockito.InjectMocks
-import org.mockito.Mock
-import org.mockito.junit.jupiter.MockitoExtension
-import org.junit.jupiter.api.extension.ExtendWith
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.Instant
-import java.util.Optional
 
-@ExtendWith(MockitoExtension::class)
 class SearchTransactionServiceTest {
 
-    @Mock
-    private lateinit var transactionCustomRepository: TransactionCustomRepository
-    @Mock
     private lateinit var transactionRepository: TransactionRepository
-
-    @InjectMocks
     private lateinit var searchTransactionService: SearchTransactionService
 
-    private lateinit var user: AppUser
-    private lateinit var category: Category
-    private lateinit var account: Account
-    private lateinit var transaction: Transaction
-
     @BeforeEach
-    fun setup() {
-        user = AppUser(1, "testUser", "test@user", "hash", Instant.now())
-        category = Category(id = 1, name = "Alimentação", type = "EXPENSE")
-        account = Account(
-            accountId = 1,
-            accountName = "Conta Corrente",
-            accountDescription = "Conta principal",
-            accountInitialBalance = BigDecimal("1000.00"),
-            accountCurrency = "BRL",
-            userId = user
-        )
-        transaction = Transaction(
-            id = 1,
-            description = "Compra de supermercado",
-            amount = BigDecimal("150.00"),
-            downPayment = null,
-            type = TransactionType.EXPENSE,
-            status = PaymentStatus.PENDING,
-            categoryId = category,
-            dueDate = LocalDate.of(2025, 8, 3),
-            createdAt = Instant.now(),
-            notes = "Compra do mês",
-            recurrencePattern = null,
-            installmentInfo = null,
-            userId = user,
-            accountId = account
-        )
+    fun setUp() {
+        transactionRepository = mockk()
+        searchTransactionService = SearchTransactionService(transactionRepository)
     }
 
     @Test
-    @DisplayName("Deve buscar transações por descrição")
-    fun `should search transactions by description`() {
-        val filter = SearchTransactionFilter(description = "Compra")
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transaction))
+    @DisplayName("Deve calcular balance de receitas e despesas com sucesso")
+    fun `should calculate income expense balance successfully`() {
+        // Given
+        val userId = 1
+        val status = PaymentStatus.PAID
+        val startDate = LocalDate.of(2025, 1, 1)
+        val endDate = LocalDate.of(2025, 1, 31)
+        val mockResponse = AmountIncomeExpenseResponse(
+            totalIncome = BigDecimal("1000.00"),
+            totalExpense = BigDecimal("500.00"),
+            balance = BigDecimal("500.00")
+        )
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        every {
+            transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate)
+        } returns mockResponse
 
-        val result = searchTransactionService.execute(filter, pageable)
+        // When
+        val result = searchTransactionService.getIncomeExpenseBalance(userId, status, startDate, endDate)
 
-        assertEquals(1, result.totalElements)
-        assertEquals("Compra de supermercado", result.content[0].description)
-        assertEquals(BigDecimal("150.00"), result.content[0].amount)
-    }
-
-    @Test
-    @DisplayName("Deve buscar transação por ID com sucesso")
-    fun `should search transaction by id successfully`() {
-        `when`(transactionRepository.findById(1)).thenReturn(Optional.of(transaction))
-
-        val result = searchTransactionService.searchById(1)
-
+        // Then
         assertNotNull(result)
-        assertEquals(1, result!!.id)
-        assertEquals("Compra de supermercado", result.description)
-        assertEquals(BigDecimal("150.00"), result.amount)
-        assertEquals("EXPENSE", result.type)
+        assertEquals(BigDecimal("1000.00"), result.totalIncome)
+        assertEquals(BigDecimal("500.00"), result.totalExpense)
+        assertEquals(BigDecimal("500.00"), result.balance)
+        assertEquals("R$", result.currency)
+
+        verify { transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate) }
     }
 
     @Test
-    @DisplayName("Deve retornar null quando transação não for encontrada por ID")
-    fun `should return null when transaction not found by id`() {
-        `when`(transactionRepository.findById(999)).thenReturn(Optional.empty())
-
-        val result = searchTransactionService.searchById(999)
-
-        assertNull(result)
-    }
-
-    @Test
-    @DisplayName("Deve buscar transações com filtros de valor")
-    fun `should search transactions with amount filters`() {
-        val filter = SearchTransactionFilter(
-            minAmount = BigDecimal("100.00"),
-            maxAmount = BigDecimal("200.00")
+    @DisplayName("Deve calcular balance com status nulo")
+    fun `should calculate balance with null status`() {
+        // Given
+        val userId = 1
+        val startDate = LocalDate.of(2025, 1, 1)
+        val endDate = LocalDate.of(2025, 1, 31)
+        val mockResponse = AmountIncomeExpenseResponse(
+            totalIncome = BigDecimal("750.00"),
+            totalExpense = BigDecimal("250.00"),
+            balance = BigDecimal("500.00")
         )
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transaction))
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        every {
+            transactionRepository.getIncomeExpenseBalance(userId, null, startDate, endDate)
+        } returns mockResponse
 
-        val result = searchTransactionService.execute(filter, pageable)
+        // When
+        val result = searchTransactionService.getIncomeExpenseBalance(userId, null, startDate, endDate)
 
-        assertEquals(1, result.totalElements)
-        assertTrue(result.content[0].amount >= BigDecimal("100.00"))
-        assertTrue(result.content[0].amount <= BigDecimal("200.00"))
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("750.00"), result.totalIncome)
+        assertEquals(BigDecimal("250.00"), result.totalExpense)
+        assertEquals(BigDecimal("500.00"), result.balance)
+
+        verify { transactionRepository.getIncomeExpenseBalance(userId, null, startDate, endDate) }
     }
 
     @Test
-    @DisplayName("Deve buscar transações com entrada (downPayment)")
-    fun `should search transactions with down payment`() {
-        val transactionWithDownPayment = transaction.copy(
-            downPayment = BigDecimal("50.00"),
-            installmentInfo = InstallmentInfo(
-                totalInstallments = 3,
-                currentInstallment = 1,
-                installmentValue = BigDecimal("50.00")
+    @DisplayName("Deve somar valores por tipo INCOME corretamente")
+    fun `should sum amounts by INCOME type correctly`() {
+        // Given
+        val userId = 1
+        val type = "INCOME"
+        val status = "PAID"
+        val startDate = "2025-01-01"
+        val endDate = "2025-01-31"
+        val incomeAmount = 1500
+
+        every {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.INCOME, PaymentStatus.PAID,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
             )
+        } returns incomeAmount
+
+        // When
+        val result = searchTransactionService.sumAmountByUserIdAndTypeAndDateRange(
+            userId, type, status, startDate, endDate
         )
-        val filter = SearchTransactionFilter(hasDownPayment = true)
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transactionWithDownPayment))
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("15.00"), result.totalIncome) // ConvertMoneyUtils converte centavos para reais
+        assertEquals(BigDecimal("0.00"), result.totalExpense)
+        assertEquals(BigDecimal("15.00"), result.balance)
 
-        val result = searchTransactionService.execute(filter, pageable)
-
-        assertEquals(1, result.totalElements)
-        assertEquals(BigDecimal("50.00"), result.content[0].downPayment)
-        assertNotNull(result.content[0].installmentInfo)
-    }
-
-    @Test
-    @DisplayName("Deve buscar transações parceladas")
-    fun `should search installment transactions`() {
-        val installmentTransaction = transaction.copy(
-            installmentInfo = InstallmentInfo(
-                totalInstallments = 12,
-                currentInstallment = 1,
-                installmentValue = BigDecimal("12.50")
+        verify {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.INCOME, PaymentStatus.PAID,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
             )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve somar valores por tipo EXPENSE corretamente")
+    fun `should sum amounts by EXPENSE type correctly`() {
+        // Given
+        val userId = 1
+        val type = "EXPENSE"
+        val status = "PAID"
+        val startDate = "2025-01-01"
+        val endDate = "2025-01-31"
+        val expenseAmount = 800
+
+        every {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.EXPENSE, PaymentStatus.PAID,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
+            )
+        } returns expenseAmount
+
+        // When
+        val result = searchTransactionService.sumAmountByUserIdAndTypeAndDateRange(
+            userId, type, status, startDate, endDate
         )
-        val filter = SearchTransactionFilter(isInstallment = true)
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(installmentTransaction))
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("0.00"), result.totalIncome)
+        assertEquals(BigDecimal("8.00"), result.totalExpense) // ConvertMoneyUtils converte centavos para reais
+        assertEquals(BigDecimal("-8.00"), result.balance)
 
-        val result = searchTransactionService.execute(filter, pageable)
-
-        assertEquals(1, result.totalElements)
-        assertNotNull(result.content[0].installmentInfo)
-        assertEquals(12, result.content[0].installmentInfo?.totalInstallments)
+        verify {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.EXPENSE, PaymentStatus.PAID,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
+            )
+        }
     }
 
     @Test
-    @DisplayName("Deve buscar transações por status")
-    fun `should search transactions by status`() {
-        val paidTransaction = transaction.copy(status = PaymentStatus.PAID)
-        val filter = SearchTransactionFilter(status = "PAID")
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(paidTransaction))
+    @DisplayName("Deve lidar com valores nulos do repositório")
+    fun `should handle null values from repository`() {
+        // Given
+        val userId = 1
+        val type = "INCOME"
+        val status = "PENDING"
+        val startDate = "2025-01-01"
+        val endDate = "2025-01-31"
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        every {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.INCOME, PaymentStatus.PENDING,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
+            )
+        } returns null
 
-        val result = searchTransactionService.execute(filter, pageable)
-
-        assertEquals(1, result.totalElements)
-        assertEquals("PAID", result.content[0].status)
-    }
-
-    @Test
-    @DisplayName("Deve buscar transações por tipo")
-    fun `should search transactions by type`() {
-        val incomeTransaction = transaction.copy(type = TransactionType.INCOME)
-        val filter = SearchTransactionFilter(type = "INCOME")
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(incomeTransaction))
-
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
-
-        val result = searchTransactionService.execute(filter, pageable)
-
-        assertEquals(1, result.totalElements)
-        assertEquals("INCOME", result.content[0].type)
-    }
-
-    @Test
-    @DisplayName("Deve buscar transações por período de datas")
-    fun `should search transactions by date range`() {
-        val filter = SearchTransactionFilter(
-            startDate = LocalDate.of(2025, 8, 1),
-            endDate = LocalDate.of(2025, 8, 31)
+        // When
+        val result = searchTransactionService.sumAmountByUserIdAndTypeAndDateRange(
+            userId, type, status, startDate, endDate
         )
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transaction))
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("0.00"), result.totalIncome)
+        assertEquals(BigDecimal("0.00"), result.totalExpense)
+        assertEquals(BigDecimal("0.00"), result.balance)
 
-        val result = searchTransactionService.execute(filter, pageable)
-
-        assertEquals(1, result.totalElements)
-        assertTrue(result.content[0].dueDate.isAfter(LocalDate.of(2025, 7, 31)))
-        assertTrue(result.content[0].dueDate.isBefore(LocalDate.of(2025, 9, 1)))
+        verify {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.INCOME, PaymentStatus.PENDING,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
+            )
+        }
     }
 
     @Test
-    @DisplayName("Deve buscar transações do mês atual")
-    fun `should search current month transactions`() {
-        val filter = SearchTransactionFilter(currentMonth = true)
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transaction))
+    @DisplayName("Deve calcular balance com zero receitas e despesas")
+    fun `should calculate balance with zero income and expenses`() {
+        // Given
+        val userId = 1
+        val status = PaymentStatus.PAID
+        val startDate = LocalDate.of(2025, 1, 1)
+        val endDate = LocalDate.of(2025, 1, 31)
+        val mockResponse = AmountIncomeExpenseResponse(
+            totalIncome = BigDecimal("0.00"),
+            totalExpense = BigDecimal("0.00"),
+            balance = BigDecimal("0.00")
+        )
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        every {
+            transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate)
+        } returns mockResponse
 
-        val result = searchTransactionService.execute(filter, pageable)
+        // When
+        val result = searchTransactionService.getIncomeExpenseBalance(userId, status, startDate, endDate)
 
-        assertEquals(1, result.totalElements)
-        assertEquals(LocalDate.of(2025, 8, 3), result.content[0].dueDate)
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("0.00"), result.totalIncome)
+        assertEquals(BigDecimal("0.00"), result.totalExpense)
+        assertEquals(BigDecimal("0.00"), result.balance)
+
+        verify { transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate) }
     }
 
     @Test
-    @DisplayName("Deve buscar transações por categoria")
-    fun `should search transactions by category`() {
-        val filter = SearchTransactionFilter(
-            categoryId = 1,
-            categoryName = "Alimentação"
+    @DisplayName("Deve validar conversão de datas string para LocalDate")
+    fun `should validate string to LocalDate conversion`() {
+        // Given
+        val userId = 1
+        val type = "INCOME"
+        val status = "PAID"
+        val startDate = "2025-12-01"
+        val endDate = "2025-12-31"
+        val incomeAmount = 2000
+
+        every {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.INCOME, PaymentStatus.PAID,
+                LocalDate.of(2025, 12, 1), LocalDate.of(2025, 12, 31)
+            )
+        } returns incomeAmount
+
+        // When
+        val result = searchTransactionService.sumAmountByUserIdAndTypeAndDateRange(
+            userId, type, status, startDate, endDate
         )
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transaction))
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("20.00"), result.totalIncome)
 
-        val result = searchTransactionService.execute(filter, pageable)
-
-        assertEquals(1, result.totalElements)
-        assertEquals(1, result.content[0].categoryId)
+        verify {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.INCOME, PaymentStatus.PAID,
+                LocalDate.of(2025, 12, 1), LocalDate.of(2025, 12, 31)
+            )
+        }
     }
 
     @Test
-    @DisplayName("Deve retornar lista vazia quando nenhuma transação for encontrada")
-    fun `should return empty list when no transactions found`() {
-        val filter = SearchTransactionFilter(description = "NãoExiste")
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl<Transaction>(emptyList())
+    @DisplayName("Deve validar conversão de enums string para tipos corretos")
+    fun `should validate string to enum conversion`() {
+        // Given
+        val userId = 1
+        val type = "EXPENSE"
+        val status = "PENDING"
+        val startDate = "2025-01-01"
+        val endDate = "2025-01-31"
+        val expenseAmount = 1200
 
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
+        every {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.EXPENSE, PaymentStatus.PENDING,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
+            )
+        } returns expenseAmount
 
-        val result = searchTransactionService.execute(filter, pageable)
+        // When
+        val result = searchTransactionService.sumAmountByUserIdAndTypeAndDateRange(
+            userId, type, status, startDate, endDate
+        )
 
-        assertEquals(0, result.totalElements)
-        assertTrue(result.content.isEmpty())
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("0.00"), result.totalIncome)
+        assertEquals(BigDecimal("12.00"), result.totalExpense)
+        assertEquals(BigDecimal("-12.00"), result.balance)
+
+        verify {
+            transactionRepository.sumAmountByUserIdAndTypeAndDateRange(
+                userId, TransactionType.EXPENSE, PaymentStatus.PENDING,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31)
+            )
+        }
     }
 
     @Test
-    @DisplayName("Deve buscar transações por vários filtros avançados")
-    fun `should search transactions by multiple advanced filters`() {
-        val installmentInfo = InstallmentInfo(
-            totalInstallments = 3,
-            currentInstallment = 1,
-            installmentValue = BigDecimal(100.0)
+    @DisplayName("Deve calcular balance negativo quando despesas maiores que receitas")
+    fun `should calculate negative balance when expenses greater than income`() {
+        // Given
+        val userId = 1
+        val status = PaymentStatus.PAID
+        val startDate = LocalDate.of(2025, 1, 1)
+        val endDate = LocalDate.of(2025, 1, 31)
+        val mockResponse = AmountIncomeExpenseResponse(
+            totalIncome = BigDecimal("300.00"),
+            totalExpense = BigDecimal("800.00"),
+            balance = BigDecimal("-500.00")
         )
-        val filter = SearchTransactionFilter(
-            status = "PENDING",
-            hasDownPayment = true,
-            isInstallment = true,
-            minAmount = BigDecimal(200.0),
-            maxAmount = BigDecimal(400.0),
-            startDate = LocalDate.of(2025, 8, 1),
-            endDate = LocalDate.of(2025, 8, 31)
-        )
-        val transaction = Transaction(
-            id = 1,
-            description = "Transação complexa",
-            amount = BigDecimal(300.0),
-            downPayment = BigDecimal(50.0),
-            type = TransactionType.EXPENSE,
-            status = PaymentStatus.PENDING,
-            categoryId = category,
-            dueDate = LocalDate.of(2025, 8, 15),
-            createdAt = Instant.now(),
-            userId = user,
-            installmentInfo = installmentInfo,
-            notes = null,
-            recurrencePattern = null
-        )
-        val pageable = PageRequest.of(0, 10)
-        val page = PageImpl(listOf(transaction), pageable, 1)
-        `when`(transactionCustomRepository.findByDynamicFilter(filter, pageable)).thenReturn(page)
 
-        val result = searchTransactionService.execute(filter, pageable)
-        assertEquals(1, result.totalElements)
-        assertEquals("PENDING", result.content[0].status)
-        assertEquals(BigDecimal(50.0), result.content[0].downPayment)
-        assertEquals(3, result.content[0].installmentInfo?.totalInstallments)
+        every {
+            transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate)
+        } returns mockResponse
+
+        // When
+        val result = searchTransactionService.getIncomeExpenseBalance(userId, status, startDate, endDate)
+
+        // Then
+        assertNotNull(result)
+        assertEquals(BigDecimal("300.00"), result.totalIncome)
+        assertEquals(BigDecimal("800.00"), result.totalExpense)
+        assertEquals(BigDecimal("-500.00"), result.balance)
+
+        verify { transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate) }
     }
 }

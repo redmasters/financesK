@@ -1,9 +1,8 @@
 package io.red.financesK.transaction.model
 
-import java.math.BigDecimal
-import java.time.LocalDate
-import java.time.Instant
 import jakarta.persistence.*
+import java.time.Instant
+import java.time.LocalDate
 
 @Entity
 @Table(name = "tbl_budget")
@@ -20,7 +19,7 @@ data class Budget(
     val categoryId: Int? = null,
 
     @Column(name = "amount", nullable = false)
-    val amount: BigDecimal,
+    val amount: Int,
 
     @Column(name = "budget_month", nullable = false)
     val month: LocalDate,

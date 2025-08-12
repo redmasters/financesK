@@ -1,10 +1,16 @@
 package io.red.financesK.account.controller.response
 
-class AccountResponse (
-    val accountId: Int?,
-    val name: String,
-    val description: String? = null,
-    val balance: String? = null, // Using String to handle potential formatting issues
-    val currency: String = "BRL", // Default currency set to BRL
-    val userId: Int?
+import java.math.BigDecimal
+import java.time.Instant
+
+data class AccountResponse(
+    val accountId: Int,
+    val accountName: String,
+    val accountDescription: String? = null,
+    val accountCurrentBalance: BigDecimal,
+    val accountCurrency: String,
+    val userId: Int,
+    val userName: String? = null,
+    val createdAt: Instant? = null,
+    val updatedAt: Instant? = null
 )
