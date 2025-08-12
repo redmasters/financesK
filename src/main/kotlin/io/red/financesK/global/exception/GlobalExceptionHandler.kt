@@ -40,6 +40,14 @@ class GlobalExceptionHandler {
     @ResponseBody
     fun handleGenericException(ex: Exception): ResponseEntity<Any> {
         log.error("m='handleGenericException', acao='erro inesperado', mensagem='${ex.message}'", ex)
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "Erro interno do servidor"))
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(mapOf("error" to "Erro interno do servidor"))
+    }
+
+    @ExceptionHandler(NotFoundException::class)
+    @ResponseBody
+    fun handleNotFoundException(ex: NotFoundException): ResponseEntity<Any> {
+        log.info("m='handleNotFoundException', acao='retornando not found', mensagem='${ex.message}'")
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to ex.message))
     }
 }
