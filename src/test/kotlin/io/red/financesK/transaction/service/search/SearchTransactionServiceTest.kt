@@ -1,16 +1,23 @@
 package io.red.financesK.transaction.service.search
 
+import io.mockk.any
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
+import io.red.financesK.transaction.controller.response.TransactionResponse
 import io.red.financesK.transaction.enums.PaymentStatus
+import io.red.financesK.transaction.enums.SortDirection
+import io.red.financesK.transaction.enums.TransactionSortField
 import io.red.financesK.transaction.enums.TransactionType
+import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.repository.TransactionRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.springframework.data.domain.Page
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -325,5 +332,450 @@ class SearchTransactionServiceTest {
         assertEquals(BigDecimal("-500.00"), result.balance)
 
         verify { transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate) }
+    }
+
+    @Test
+    @DisplayName("Deve buscar transações paginadas com filtros básicos")
+    fun `should search transactions paginated with basic filters`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31)
+        )
+        val page = 0
+        val size = 10
+        val sortField = TransactionSortField.DUE_DATE
+        val sortDirection = SortDirection.DESC
+
+        val mockTransaction = mockk<Transaction> {
+            every { id } returns 1
+            every { description } returns "Teste"
+            every { amount } returns 10000
+            every { type } returns TransactionType.EXPENSE
+            every { categoryId } returns mockk { every { id } returns 1 }
+            every { dueDate } returns LocalDate.of(2025, 1, 15)
+            every { createdAt } returns LocalDate.of(2025, 1, 15).atStartOfDay()
+            every { notes } returns "Nota teste"
+            every { recurrencePattern } returns null
+            every { installmentInfo } returns null
+            every { userId } returns mockk { every { id } returns 1 }
+        }
+
+        val mockPage = mockk<Page<Transaction>> {
+            every { totalElements } returns 1L
+            every { totalPages } returns 1
+            every { map<TransactionResponse>(any()) } returns mockk {
+                every { totalElements } returns 1L
+                every { totalPages } returns 1
+                every { content } returns listOf(
+                    TransactionResponse(
+                        id = 1,
+                        description = "Teste",
+                        amount = BigDecimal("100.00"),
+                        type = "EXPENSE",
+                        categoryId = 1,
+                        transactionDate = LocalDate.of(2025, 1, 15),
+                        createdAt = LocalDate.of(2025, 1, 15).atStartOfDay(),
+                        notes = "Nota teste",
+                        recurrencePattern = null,
+                        installmentInfo = null,
+                        userId = 1
+                    )
+                )
+            }
+        }
+
+        every {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        } returns mockPage
+
+        // When
+        val result = searchTransactionService.searchTransactionsPaginated(
+            filter, page, size, sortField, sortDirection
+        )
+
+        // Then
+        assertNotNull(result)
+        assertEquals(1L, result.totalElements)
+        assertEquals(1, result.totalPages)
+
+        verify {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve buscar transações com filtros de tipo INCOME")
+    fun `should search transactions with INCOME type filter`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31),
+            type = TransactionType.INCOME
+        )
+
+        val mockPage = mockk<Page<Transaction>> {
+            every { totalElements } returns 5L
+            every { totalPages } returns 1
+            every { map<TransactionResponse>(any()) } returns mockk {
+                every { totalElements } returns 5L
+                every { totalPages } returns 1
+                every { content } returns emptyList()
+            }
+        }
+
+        every {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = TransactionType.INCOME,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        } returns mockPage
+
+        // When
+        val result = searchTransactionService.searchTransactionsPaginated(filter, 0, 20)
+
+        // Then
+        assertNotNull(result)
+        assertEquals(5L, result.totalElements)
+
+        verify {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = TransactionType.INCOME,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve buscar transações recorrentes")
+    fun `should search recurring transactions`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31),
+            isRecurring = true
+        )
+
+        val mockPage = mockk<Page<Transaction>> {
+            every { totalElements } returns 3L
+            every { totalPages } returns 1
+            every { map<TransactionResponse>(any()) } returns mockk {
+                every { totalElements } returns 3L
+                every { totalPages } returns 1
+                every { content } returns emptyList()
+            }
+        }
+
+        every {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = true,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        } returns mockPage
+
+        // When
+        val result = searchTransactionService.searchTransactionsPaginated(filter, 0, 20)
+
+        // Then
+        assertNotNull(result)
+        assertEquals(3L, result.totalElements)
+
+        verify {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = true,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve buscar transações parceladas")
+    fun `should search installment transactions`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31),
+            hasInstallments = true
+        )
+
+        val mockPage = mockk<Page<Transaction>> {
+            every { totalElements } returns 2L
+            every { totalPages } returns 1
+            every { map<TransactionResponse>(any()) } returns mockk {
+                every { totalElements } returns 2L
+                every { totalPages } returns 1
+                every { content } returns emptyList()
+            }
+        }
+
+        every {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = true,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        } returns mockPage
+
+        // When
+        val result = searchTransactionService.searchTransactionsPaginated(filter, 0, 20)
+
+        // Then
+        assertNotNull(result)
+        assertEquals(2L, result.totalElements)
+
+        verify {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = true,
+                description = null,
+                minAmount = null,
+                maxAmount = null,
+                pageable = any()
+            )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve contar transações com filtros")
+    fun `should count transactions with filters`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31),
+            type = TransactionType.EXPENSE,
+            status = PaymentStatus.PAID
+        )
+
+        every {
+            transactionRepository.countTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = TransactionType.EXPENSE,
+                status = PaymentStatus.PAID,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null
+            )
+        } returns 15L
+
+        // When
+        val result = searchTransactionService.searchTransactionsCount(filter)
+
+        // Then
+        assertEquals(15L, result)
+
+        verify {
+            transactionRepository.countTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = TransactionType.EXPENSE,
+                status = PaymentStatus.PAID,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = null,
+                maxAmount = null
+            )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve buscar com filtros de valor mínimo e máximo")
+    fun `should search with min and max amount filters`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31),
+            minAmount = 5000, // R$ 50,00
+            maxAmount = 20000 // R$ 200,00
+        )
+
+        val mockPage = mockk<Page<Transaction>> {
+            every { totalElements } returns 8L
+            every { totalPages } returns 1
+            every { map<TransactionResponse>(any()) } returns mockk {
+                every { totalElements } returns 8L
+                every { totalPages } returns 1
+                every { content } returns emptyList()
+            }
+        }
+
+        every {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = 5000,
+                maxAmount = 20000,
+                pageable = any()
+            )
+        } returns mockPage
+
+        // When
+        val result = searchTransactionService.searchTransactionsPaginated(filter, 0, 20)
+
+        // Then
+        assertNotNull(result)
+        assertEquals(8L, result.totalElements)
+
+        verify {
+            transactionRepository.findTransactionsByFilters(
+                userId = 1,
+                startDate = LocalDate.of(2025, 1, 1),
+                endDate = LocalDate.of(2025, 1, 31),
+                type = null,
+                status = null,
+                categoryId = null,
+                isRecurring = null,
+                hasInstallments = null,
+                description = null,
+                minAmount = 5000,
+                maxAmount = 20000,
+                pageable = any()
+            )
+        }
+    }
+
+    @Test
+    @DisplayName("Deve validar ordenação por diferentes campos")
+    fun `should validate sorting by different fields`() {
+        // Given
+        val filter = SearchTransactionFilter(
+            userId = 1,
+            startDate = LocalDate.of(2025, 1, 1),
+            endDate = LocalDate.of(2025, 1, 31)
+        )
+
+        val mockPage = mockk<Page<Transaction>> {
+            every { totalElements } returns 0L
+            every { totalPages } returns 0
+            every { map<TransactionResponse>(any()) } returns mockk {
+                every { totalElements } returns 0L
+                every { totalPages } returns 0
+                every { content } returns emptyList()
+            }
+        }
+
+        every {
+            transactionRepository.findTransactionsByFilters(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+        } returns mockPage
+
+        // When & Then - Testar diferentes campos de ordenação
+        val sortFields = listOf(
+            TransactionSortField.AMOUNT,
+            TransactionSortField.TYPE,
+            TransactionSortField.CATEGORY,
+            TransactionSortField.DUE_DATE
+        )
+
+        sortFields.forEach { sortField ->
+            val result = searchTransactionService.searchTransactionsPaginated(
+                filter, 0, 20, sortField, SortDirection.ASC
+            )
+            assertNotNull(result)
+        }
+
+        verify(exactly = sortFields.size) {
+            transactionRepository.findTransactionsByFilters(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+        }
     }
 }

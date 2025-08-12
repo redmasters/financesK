@@ -77,4 +77,71 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         @Param("startDate") startDate: LocalDate,
         @Param("endDate") endDate: LocalDate
     ): Int?
+
+    @Query(
+        """
+        SELECT t FROM Transaction t
+        WHERE t.userId.id = :userId
+        AND t.dueDate BETWEEN :startDate AND :endDate
+        AND (:type IS NULL OR t.type = :type)
+        AND (:status IS NULL OR t.status = :status)
+        AND (:categoryId IS NULL OR t.categoryId.id = :categoryId)
+        AND (:isRecurring IS NULL OR 
+             (:isRecurring = true AND t.recurrencePattern IS NOT NULL) OR
+             (:isRecurring = false AND t.recurrencePattern IS NULL))
+        AND (:hasInstallments IS NULL OR 
+             (:hasInstallments = true AND t.installmentInfo IS NOT NULL) OR
+             (:hasInstallments = false AND t.installmentInfo IS NULL))
+        AND (:description IS NULL OR t.description LIKE :description)
+        AND (:minAmount IS NULL OR t.amount >= :minAmount)
+        AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
+        """
+    )
+    fun findTransactionsByFilters(
+        @Param("userId") userId: Int,
+        @Param("startDate") startDate: LocalDate,
+        @Param("endDate") endDate: LocalDate,
+        @Param("type") type: TransactionType?,
+        @Param("status") status: PaymentStatus?,
+        @Param("categoryId") categoryId: Int?,
+        @Param("isRecurring") isRecurring: Boolean?,
+        @Param("hasInstallments") hasInstallments: Boolean?,
+        @Param("description") description: String?,
+        @Param("minAmount") minAmount: Int?,
+        @Param("maxAmount") maxAmount: Int?,
+        pageable: Pageable
+    ): Page<Transaction>
+
+    @Query(
+        """
+        SELECT COUNT(t) FROM Transaction t
+        WHERE t.userId.id = :userId
+        AND t.dueDate BETWEEN :startDate AND :endDate
+        AND (:type IS NULL OR t.type = :type)
+        AND (:status IS NULL OR t.status = :status)
+        AND (:categoryId IS NULL OR t.categoryId.id = :categoryId)
+        AND (:isRecurring IS NULL OR 
+             (:isRecurring = true AND t.recurrencePattern IS NOT NULL) OR
+             (:isRecurring = false AND t.recurrencePattern IS NULL))
+        AND (:hasInstallments IS NULL OR 
+             (:hasInstallments = true AND t.installmentInfo IS NOT NULL) OR
+             (:hasInstallments = false AND t.installmentInfo IS NULL))
+        AND (:description IS NULL OR t.description LIKE :description)
+        AND (:minAmount IS NULL OR t.amount >= :minAmount)
+        AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
+        """
+    )
+    fun countTransactionsByFilters(
+        @Param("userId") userId: Int,
+        @Param("startDate") startDate: LocalDate,
+        @Param("endDate") endDate: LocalDate,
+        @Param("type") type: TransactionType?,
+        @Param("status") status: PaymentStatus?,
+        @Param("categoryId") categoryId: Int?,
+        @Param("isRecurring") isRecurring: Boolean?,
+        @Param("hasInstallments") hasInstallments: Boolean?,
+        @Param("description") description: String?,
+        @Param("minAmount") minAmount: Int?,
+        @Param("maxAmount") maxAmount: Int?
+    ): Long
 }
