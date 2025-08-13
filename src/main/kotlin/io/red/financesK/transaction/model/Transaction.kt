@@ -3,6 +3,7 @@ package io.red.financesK.transaction.model
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType
 import io.red.financesK.account.balance.enums.AccountOperationType
 import io.red.financesK.account.model.Account
+import io.red.financesK.category.model.Category
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
 import io.red.financesK.transaction.enums.TransactionType

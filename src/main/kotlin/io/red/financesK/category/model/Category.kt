@@ -1,4 +1,4 @@
-package io.red.financesK.transaction.model
+package io.red.financesK.category.model
 
 import jakarta.persistence.*
 

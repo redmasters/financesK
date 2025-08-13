@@ -1,6 +1,6 @@
-package io.red.financesK.transaction.repository
+package io.red.financesK.category.repository
 
-import io.red.financesK.transaction.model.Category
+import io.red.financesK.category.model.Category
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -16,8 +16,6 @@ interface CategoryRepository : JpaRepository<Category, Int> {
     fun findByParentIdIsNull(): List<Category>
 
     fun findCategoriesByParentId(parentId: Int): List<Category>
-
-    fun existsByName(name: String): Boolean
 
     @Query("SELECT c FROM Category c WHERE c.parentId IS NULL ORDER BY c.name")
     fun findRootCategories(): List<Category>

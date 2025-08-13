@@ -1,17 +1,17 @@
 package io.red.financesK.transaction.service.create
 
 import io.red.financesK.account.service.search.SearchAccountService
+import io.red.financesK.category.model.Category
+import io.red.financesK.category.service.search.SearchCategoryService
 import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.global.utils.ConvertMoneyUtils
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
 import io.red.financesK.transaction.controller.response.CreateTransactionResponse
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.RecurrencePattern
-import io.red.financesK.transaction.model.Category
 import io.red.financesK.transaction.model.InstallmentInfo
 import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.repository.TransactionRepository
-import io.red.financesK.transaction.service.search.SearchCategoryService
 import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.service.search.SearchUserService
 import org.springframework.stereotype.Service
