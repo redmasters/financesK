@@ -5,7 +5,6 @@ import io.red.financesK.global.utils.ConvertMoneyUtils
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
 import io.red.financesK.transaction.controller.response.TransactionResponse
-import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.SortDirection
 import io.red.financesK.transaction.enums.TransactionSortField
 import io.red.financesK.transaction.model.Transaction
@@ -15,7 +14,6 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
-import java.time.LocalDate
 
 @Service
 class SearchTransactionService(
@@ -24,14 +22,28 @@ class SearchTransactionService(
     private val log = LoggerFactory.getLogger(SearchTransactionService::class.java)
 
     fun getIncomeExpenseBalance(
-        userId: Int,
-        status: PaymentStatus?,
-        startDate: LocalDate,
-        endDate: LocalDate
+        filter: SearchTransactionFilter
     ): AmountIncomeExpenseResponse {
-        log.info("m='getIncomeExpenseBalance', acao='calculando balance receitas/despesas', userId='$userId', startDate='$startDate', endDate='$endDate'")
 
-        val result = transactionRepository.getIncomeExpenseBalance(userId, status, startDate, endDate)
+        log.info(
+            "m='getIncomeExpenseBalance', acao='iniciando busca de saldo', userId='${filter.userId}'," +
+                    " type='${filter.type}', status='${filter.status}', startDate='${filter.startDate}'," +
+                    " endDate='${filter.endDate}'"
+        )
+
+        val result = transactionRepository.getIncomeExpenseBalance(
+            userId = filter.userId,
+            status = filter.status,
+            type = filter.type,
+            categoryId = filter.categoryId,
+            isRecurring = filter.isRecurring,
+            hasInstallments = filter.hasInstallments,
+            description = filter.description?.let { "%${it}%" }, // Adiciona wildcards para busca
+            minAmount = filter.minAmount,
+            maxAmount = filter.maxAmount,
+            startDate = filter.startDate,
+            endDate = filter.endDate
+        )
 
         log.info("m='getIncomeExpenseBalance', acao='balance calculado', totalIncome='${result.totalIncome}', totalExpense='${result.totalExpense}', balance='${result.balance}'")
 

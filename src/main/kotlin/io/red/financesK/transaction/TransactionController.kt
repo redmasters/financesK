@@ -53,17 +53,32 @@ class TransactionController(
     @GetMapping("/stats/income-expense-balance")
     fun getIncomeExpenseBalance(
         @RequestParam userId: Int,
+        @RequestParam(required = false) type: String?,
         @RequestParam(required = false) status: String?,
+        @RequestParam(required = false) categoryId: Int?,
+        @RequestParam(required = false) isRecurring: Boolean?,
+        @RequestParam(required = false) hasInstallments: Boolean?,
+        @RequestParam(required = false) description: String?,
+        @RequestParam(required = false) minAmount: Int?,
+        @RequestParam(required = false) maxAmount: Int?,
         @RequestParam startDate: String,
         @RequestParam endDate: String
     ): ResponseEntity<AmountIncomeExpenseResponse> {
         val paymentStatus = status?.let { PaymentStatus.valueOf(it.uppercase()) }
-        val balance = searchTransactionService.getIncomeExpenseBalance(
+        val filter = SearchTransactionFilter(
             userId = userId,
-            status = paymentStatus,
             startDate = LocalDate.parse(startDate),
-            endDate = LocalDate.parse(endDate)
+            endDate = LocalDate.parse(endDate),
+            type = type?.let { TransactionType.valueOf(it.uppercase()) },
+            status = paymentStatus,
+            categoryId = categoryId,
+            isRecurring = isRecurring,
+            hasInstallments = hasInstallments,
+            description = description,
+            minAmount = minAmount,
+            maxAmount = maxAmount
         )
+        val balance = searchTransactionService.getIncomeExpenseBalance(filter)
         return ResponseEntity.ok(balance)
     }
 
