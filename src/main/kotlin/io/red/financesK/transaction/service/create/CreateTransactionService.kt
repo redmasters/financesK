@@ -65,31 +65,24 @@ class CreateTransactionService(
         recurrence: RecurrencePattern
     ): List<CreateTransactionResponse> {
         val account = searchAccountService.findAccountById(request.accountId)
-        val amount = ConvertMoneyUtils.convertToCents(request.amount)
-        val occurrences = request.totalInstallments?.let {
-            if (it > 0) {
-                request.totalInstallments
-            } else {
-                calculateOcurrences(request.dueDate, recurrence)
-            }
-        }
+        val amount = request.amount.toInt()
+        val occurrences = request.totalInstallments ?: calculateOcurrences(request.dueDate, recurrence)
 
         val currentInstallment = request.currentInstallment ?: 1
 
-        val installmentValue = if ((occurrences != null) && (occurrences > 0)) {
+        val installmentValue = if ((request.totalInstallments != null) && (occurrences > 0)) {
             amount.div(occurrences)
         } else {
             amount
         }
 
-        val transactions = (currentInstallment..occurrences!!).map { occurrence ->
+        val transactions = (currentInstallment..occurrences).map { occurrence ->
             val transactionDate = calculateTransactionDate(request.dueDate, recurrence, occurrence)
-            // incrementa currentInstallment caso nao seja null
             val currentOccurrence = request.currentInstallment?.let {
                 it + occurrence - currentInstallment
             } ?: (occurrence)
 
-            val description = if (occurrences > 0) {
+            val description = if (occurrences > 0 && request.totalInstallments?.let { it > 1 } == true) {
                 "${request.description} - Parcela $currentOccurrence de $occurrences"
             } else {
                 request.description
@@ -107,7 +100,7 @@ class CreateTransactionService(
                 createdAt = Instant.now(),
                 notes = request.notes,
                 recurrencePattern = recurrence,
-                installmentInfo = if (occurrences > 1) {
+                installmentInfo = if ((occurrences > 1) && (request.totalInstallments != null)) {
                     InstallmentInfo(
                         totalInstallments = occurrences,
                         currentInstallment = currentOccurrence,
@@ -149,12 +142,11 @@ class CreateTransactionService(
         user: AppUser
     ): List<CreateTransactionResponse> {
         val account = searchAccountService.findAccountById(request.accountId)
-        val amount = ConvertMoneyUtils.convertToCents(request.amount)
 
         val transaction = Transaction(
             description = request.description,
-            amount = amount,
-            downPayment = request.downPayment?.let { ConvertMoneyUtils.convertToCents(it) },
+            amount = request.amount.toInt(),
+            downPayment = request.downPayment?.toInt(),
             type = request.type,
             operationType = request.operationType,
             status = request.status ?: PaymentStatus.PENDING,
