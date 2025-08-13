@@ -24,7 +24,7 @@ CREATE TABLE tbl_account
     account_id              SERIAL PRIMARY KEY,
     account_name            VARCHAR(100) NOT NULL,
     account_description     VARCHAR(255),
-    account_current_balance INTEGER      NOT NULL,
+    account_current_balance INTEGER,                    -- Removido NOT NULL para alinhar com a entidade
     account_currency        VARCHAR(3)   NOT NULL    DEFAULT 'BRL',
     user_id                 INTEGER      NOT NULL REFERENCES tbl_app_user (id),
     created_at              TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -90,7 +90,6 @@ CREATE INDEX idx_app_user_username ON tbl_app_user (username);
 CREATE INDEX idx_app_user_email ON tbl_app_user (email);
 
 -- Índices para tbl_category
-CREATE INDEX idx_category_type ON tbl_category (type);
 CREATE INDEX idx_category_parent ON tbl_category (parent_id);
 
 -- Índices para tbl_account
