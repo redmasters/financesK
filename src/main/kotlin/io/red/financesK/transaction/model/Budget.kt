@@ -1,5 +1,7 @@
 package io.red.financesK.transaction.model
 
+import io.red.financesK.category.model.Category
+import io.red.financesK.user.model.AppUser
 import jakarta.persistence.*
 import java.time.Instant
 import java.time.LocalDate
@@ -12,11 +14,13 @@ data class Budget(
     @Column(name = "id")
     val id: Int? = null,
 
-    @Column(name = "user_id", nullable = false)
-    val userId: Int,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    val user: AppUser,
 
-    @Column(name = "category_id")
-    val categoryId: Int? = null,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    val category: Category? = null,
 
     @Column(name = "amount", nullable = false)
     val amount: Int,

@@ -22,12 +22,18 @@ class UpdateCategoryService(
                 NotFoundException("Category not found with id: $categoryId")
             }
 
+        val parentCategory = request.parentId?.let { parentId ->
+            categoryRepository.findById(parentId).orElseThrow {
+                IllegalArgumentException("Parent category with ID $parentId not found")
+            }
+        } ?: category.parent
+
         // Create updated category with new values
         val updatedCategory = category.copy(
             name = request.name ?: category.name,
             icon = request.icon ?: category.icon,
             color = request.color ?: category.color,
-            parentId = request.parentId ?: category.parentId
+            parent = parentCategory
         )
 
         val savedCategory = categoryRepository.save(updatedCategory)

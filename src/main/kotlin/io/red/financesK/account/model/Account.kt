@@ -1,5 +1,7 @@
 package io.red.financesK.account.model
 
+import io.red.financesK.account.enums.AccountTypeEnum
+import io.red.financesK.bank.model.BankInstitution
 import io.red.financesK.user.model.AppUser
 import jakarta.persistence.*
 import java.time.Instant
@@ -17,6 +19,23 @@ data class Account(
 
     @Column(name = "account_description", length = 255)
     var accountDescription: String? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_institution_id", nullable = true)
+    var bankInstitution: BankInstitution? = null,
+
+    @Column(name = "account_type", nullable = true, length = 50)
+    @Enumerated(EnumType.STRING)
+    var accountType: AccountTypeEnum? = null,
+
+    @Column(name = "account_credit_limit", nullable = true)
+    var accountCreditLimit: Int? = null,
+
+    @Column(name = "account_statement_closing_date", nullable = true)
+    var accountStatementClosingDate: Int? = null,
+
+    @Column(name = "account_payment_due_date", nullable = true)
+    var accountPaymentDueDate: Int? = null,
 
     @Column(name = "account_current_balance", nullable = true)
     var accountCurrentBalance: Int? = null,

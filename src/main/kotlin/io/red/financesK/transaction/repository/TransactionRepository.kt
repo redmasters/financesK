@@ -56,7 +56,7 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:type IS NULL OR t.type = :type)
         AND (:categoryId IS NULL OR 
              t.categoryId.id = :categoryId OR 
-             t.categoryId.id IN (SELECT c.id FROM Category c WHERE c.parentId = :categoryId))
+             t.categoryId.id IN (SELECT c.id FROM Category c WHERE c.parent.id = :categoryId))
         AND (:isRecurring IS NULL OR 
              (:isRecurring = true AND t.recurrencePattern IS NOT NULL) OR
              (:isRecurring = false AND t.recurrencePattern IS NULL))
@@ -107,7 +107,7 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:status IS NULL OR t.status = :status)
         AND (:categoryId IS NULL OR 
              t.categoryId.id = :categoryId OR 
-             t.categoryId.id IN (SELECT c.id FROM Category c WHERE c.parentId = :categoryId))
+             t.categoryId.id IN (SELECT c.id FROM Category c WHERE c.parent.id = :categoryId))
         AND (:isRecurring IS NULL OR 
              (:isRecurring = true AND t.recurrencePattern IS NOT NULL) OR
              (:isRecurring = false AND t.recurrencePattern IS NULL))
@@ -143,7 +143,7 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:status IS NULL OR t.status = :status)
         AND (:categoryId IS NULL OR 
              t.categoryId.id = :categoryId OR 
-             t.categoryId.id IN (SELECT c.id FROM Category c WHERE c.parentId = :categoryId))
+             t.categoryId.id IN (SELECT c.id FROM Category c WHERE c.parent.id = :categoryId))
         AND (:isRecurring IS NULL OR 
              (:isRecurring = true AND t.recurrencePattern IS NOT NULL) OR
              (:isRecurring = false AND t.recurrencePattern IS NULL))

@@ -38,7 +38,7 @@ class SearchCategoryService(
             name = category.name ?: "",
             icon = category.icon,
             color = category.color,
-            parentId = category.parentId
+            parentId = category.parent?.id
         )
     }
 
@@ -55,7 +55,7 @@ class SearchCategoryService(
                 name = category.name ?: "",
                 icon = category.icon,
                 color = category.color,
-                parentId = category.parentId
+                parentId = category.parent?.id
             )
         }
     }
@@ -73,7 +73,7 @@ class SearchCategoryService(
                 name = category.name ?: "",
                 icon = category.icon,
                 color = category.color,
-                parentId = category.parentId
+                parentId = category.parent?.id
             )
         }
     }
@@ -91,7 +91,7 @@ class SearchCategoryService(
                 name = category.name ?: "",
                 icon = category.icon,
                 color = category.color,
-                parentId = category.parentId
+                parentId = category.parent?.id
             )
         }
     }

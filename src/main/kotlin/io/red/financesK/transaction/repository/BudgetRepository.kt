@@ -19,10 +19,10 @@ interface BudgetRepository : JpaRepository<Budget, Int> {
 
     fun findByUserIdAndMonthBetween(userId: Int, startMonth: LocalDate, endMonth: LocalDate): List<Budget>
 
-    @Query("SELECT b FROM Budget b WHERE b.userId = :userId AND EXTRACT(YEAR FROM b.month) = :year")
+    @Query("SELECT b FROM Budget b WHERE b.user.id = :userId AND EXTRACT(YEAR FROM b.month) = :year")
     fun findByUserIdAndYear(@Param("userId") userId: Int, @Param("year") year: Int): List<Budget>
 
-    @Query("SELECT SUM(b.amount) FROM Budget b WHERE b.userId = :userId AND b.month = :month")
+    @Query("SELECT SUM(b.amount) FROM Budget b WHERE b.user.id = :userId AND b.month = :month")
     fun sumAmountByUserIdAndMonth(@Param("userId") userId: Int, @Param("month") month: LocalDate): BigDecimal?
 
     fun existsByUserIdAndCategoryIdAndMonth(userId: Int, categoryId: Int?, month: LocalDate): Boolean

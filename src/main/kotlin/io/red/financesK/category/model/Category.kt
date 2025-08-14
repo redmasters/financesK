@@ -19,6 +19,7 @@ data class Category(
     @Column(name = "color")
     val color: String? = null,
 
-    @Column(name = "parent_id")
-    val parentId: Int? = null
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    val parent: Category? = null
 )

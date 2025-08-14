@@ -18,6 +18,14 @@ data class CreateAccountRequest(
     @field:Size(min = 3, max = 3, message = "Currency must be exactly 3 characters")
     val accountCurrency: String = "BRL",
 
+    val bankInstitutionId: Int? = null,
+    @field:Size(max = 50, message = "Account type cannot exceed 50 characters")
+    val accountType: String? = null,
+
+    val accountCreditLimit: BigDecimal? = null,
+    val accountStatementClosingDate: Int? = null,
+    val accountPaymentDueDate: Int? = null,
+
     @field:NotNull(message = "User ID is required")
     val userId: Int
 )

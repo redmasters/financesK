@@ -17,9 +17,9 @@ interface CategoryRepository : JpaRepository<Category, Int> {
 
     fun findCategoriesByParentId(parentId: Int): List<Category>
 
-    @Query("SELECT c FROM Category c WHERE c.parentId IS NULL ORDER BY c.name")
+    @Query("SELECT c FROM Category c WHERE c.parent IS NULL ORDER BY c.name")
     fun findRootCategories(): List<Category>
 
-    @Query("SELECT c FROM Category c WHERE c.parentId= :parentId ORDER BY c.name")
+    @Query("SELECT c FROM Category c WHERE c.parent.id = :parentId ORDER BY c.name")
     fun findSubcategoriesByParentId(@Param("parentId") parentId: Int): List<Category>
 }

@@ -15,12 +15,17 @@ class CreateCategoryService(
 
     fun execute(request: CreateCategoryRequest): CreateCategoryResponse {
         log.info("m='execute', acao='criando categoria', request='$request'")
+        val parentCategory = request.parentId?.let { parentId ->
+            categoryRepository.findById(parentId).orElseThrow {
+                IllegalArgumentException("Parent category with ID $parentId not found")
+            }
+        }
 
         val category = Category(
             name = request.name,
             icon = request.icon,
             color = request.color,
-            parentId = request.parentId
+            parent = parentCategory
         )
 
         val savedCategory = categoryRepository.save(category)

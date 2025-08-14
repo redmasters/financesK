@@ -40,6 +40,16 @@ class AccountController(
         return ResponseEntity.ok(response)
     }
 
+    @GetMapping("/user/{userId}")
+    fun getAccountsByUserId(@PathVariable userId: Int): ResponseEntity<List<AccountResponse>> {
+        val accounts = searchAccountService.getListAccountsByUserId(userId)
+        return if (accounts.isEmpty()) {
+            ResponseEntity.noContent().build()
+        } else {
+            ResponseEntity.ok(accounts)
+        }
+    }
+
     @PutMapping("/{accountId}")
     fun updateAccount(
         @PathVariable accountId: Int,

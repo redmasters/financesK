@@ -27,7 +27,7 @@ data class AccountBalanceHistory(
     val amount: Int? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "history_operation_type", nullable = false, length = 10)
+    @Column(name = "history_operation_type", nullable = false, length = 20)
     val operationType: AccountOperationType?,
 
     @Column(name = "balance_timestamp", nullable = false)
