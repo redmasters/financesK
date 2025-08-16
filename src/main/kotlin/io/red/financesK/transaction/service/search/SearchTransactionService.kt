@@ -1,5 +1,6 @@
 package io.red.financesK.transaction.service.search
 
+import io.red.financesK.account.service.search.SearchAccountService
 import io.red.financesK.global.exception.NotFoundException
 import io.red.financesK.global.utils.ConvertMoneyUtils
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
@@ -17,7 +18,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class SearchTransactionService(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val searchAccountService: SearchAccountService
 ) {
     private val log = LoggerFactory.getLogger(SearchTransactionService::class.java)
 
@@ -33,6 +35,7 @@ class SearchTransactionService(
 
         val result = transactionRepository.getIncomeExpenseBalance(
             userId = filter.userId,
+            accountsId = filter.accountsId,
             status = filter.status,
             type = filter.type,
             categoryId = filter.categoryId,

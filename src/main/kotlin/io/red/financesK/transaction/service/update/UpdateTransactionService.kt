@@ -4,15 +4,18 @@ import io.red.financesK.category.service.search.SearchCategoryService
 import io.red.financesK.global.exception.NotFoundException
 import io.red.financesK.transaction.controller.request.UpdateTransactionRequest
 import io.red.financesK.transaction.controller.response.UpdateTransactionResponse
+import io.red.financesK.transaction.event.TransactionStatusChangedEvent
 import io.red.financesK.transaction.repository.TransactionRepository
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.time.Instant
 
 @Service
 class UpdateTransactionService(
     private val transactionRepository: TransactionRepository,
-    private val searchCategoryService: SearchCategoryService
+    private val searchCategoryService: SearchCategoryService,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     private val log = LoggerFactory.getLogger(UpdateTransactionService::class.java)
 
@@ -24,6 +27,7 @@ class UpdateTransactionService(
         val transaction = transactionRepository.findById(transactionId)
             .orElseThrow { NotFoundException("Transaction with id $transactionId not found") }
         val category = searchCategoryService.findCategoryById(updateRequest.categoryId)
+        val previousStatus = transaction.status
 
         log.info("m='updateTransaction', transactionFound='$transaction'")
         transaction.apply {
@@ -40,10 +44,22 @@ class UpdateTransactionService(
         }
         transactionRepository.save(transaction)
         log.info("m='updateTransaction', transactionUpdated='$transaction'")
+
+        applicationEventPublisher.publishEvent(
+            TransactionStatusChangedEvent(
+                transactionId = transaction.id ?: 0,
+                accountId = transaction.accountId?.accountId,
+                amount = transaction.amount,
+                type = transaction.type,
+                previousStatus = previousStatus,
+                newStatus = transaction.status
+            )
+
+        )
+
         return UpdateTransactionResponse(
             id = transaction.id ?: 0,
             updatedAt = transaction.updatedAt ?: Instant.now()
-
         )
     }
 }

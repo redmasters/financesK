@@ -53,6 +53,7 @@ class TransactionController(
     @GetMapping("/stats/income-expense-balance")
     fun getIncomeExpenseBalance(
         @RequestParam userId: Int,
+        @RequestParam (required = false) accountsId: List<Int>?,
         @RequestParam(required = false) type: String?,
         @RequestParam(required = false) status: String?,
         @RequestParam(required = false) categoryId: Int?,
@@ -67,6 +68,7 @@ class TransactionController(
         val paymentStatus = status?.let { PaymentStatus.valueOf(it.uppercase()) }
         val filter = SearchTransactionFilter(
             userId = userId,
+            accountsId = accountsId,
             startDate = LocalDate.parse(startDate),
             endDate = LocalDate.parse(endDate),
             type = type?.let { TransactionType.valueOf(it.uppercase()) },

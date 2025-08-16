@@ -6,6 +6,7 @@ import java.time.LocalDate
 
 data class SearchTransactionFilter(
     val userId: Int,
+    val accountsId: List<Int>? = emptyList(),
     val startDate: LocalDate,
     val endDate: LocalDate,
     val type: TransactionType? = null,

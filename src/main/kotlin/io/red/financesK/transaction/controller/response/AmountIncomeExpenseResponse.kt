@@ -22,16 +22,4 @@ data class AmountIncomeExpenseResponse(
         balanceFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(ConvertMoneyUtils.convertToDecimal(balance.toInt()))
     )
 
-    constructor(
-        totalIncome: BigDecimal,
-        totalExpense: BigDecimal,
-        balance: BigDecimal
-    ) : this(
-        totalIncome = totalIncome,
-        totalIncomeFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(totalIncome),
-        totalExpense = totalExpense,
-        totalExpenseFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(totalExpense),
-        balance = balance,
-        balanceFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(balance)
-    )
 }

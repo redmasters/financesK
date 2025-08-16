@@ -67,10 +67,13 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:minAmount IS NULL OR t.amount >= :minAmount)
         AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
         AND t.dueDate BETWEEN :startDate AND :endDate
+        and 
+        (:accountsId IS NULL OR t.accountId.accountId IN :accountsId)
         """
     )
     fun getIncomeExpenseBalance(
         @Param("userId") userId: Int,
+        @Param("accountsId") accountsId: List<Int>?,
         @Param("status") status: PaymentStatus?,
         @Param("type") type: TransactionType?,
         @Param("categoryId") categoryId: Int?,
