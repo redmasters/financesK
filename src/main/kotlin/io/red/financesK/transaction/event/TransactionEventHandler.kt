@@ -7,6 +7,7 @@ import io.red.financesK.transaction.enums.TransactionType
 import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 @Component
 class TransactionEventHandler(
@@ -45,6 +46,7 @@ class TransactionEventHandler(
         val currentBalance = account.accountCurrentBalance ?: 0
         val newBalance = currentBalance + balanceChange
 
+        account.updatedAt = Instant.now()
         account.accountCurrentBalance = newBalance
         accountRepository.save(account)
 

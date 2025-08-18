@@ -113,6 +113,7 @@ class CreateTransactionService(
                 categoryId = category,
                 dueDate = transactionDate,
                 createdAt = Instant.now(),
+                paidAt = if (status == PaymentStatus.PAID) LocalDate.now() else null,
                 notes = request.notes,
                 recurrencePattern = recurrence,
                 installmentInfo = if ((occurrences > 1) && (request.totalInstallments != null)) {
@@ -173,6 +174,7 @@ class CreateTransactionService(
             categoryId = category,
             dueDate = request.dueDate,
             createdAt = Instant.now(),
+            paidAt = if (request.status == PaymentStatus.PAID) LocalDate.now() else null,
             notes = request.notes,
             recurrencePattern = null,
             installmentInfo = null,

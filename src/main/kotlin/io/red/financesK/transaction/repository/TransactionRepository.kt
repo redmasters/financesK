@@ -52,6 +52,10 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         )
         FROM Transaction t
         WHERE t.userId.id = :userId
+        AND (
+        (t.dueDate BETWEEN :startDate AND :endDate) OR
+        (t.status = 'PAID' AND t.paidAt BETWEEN :startDate AND :endDate)
+        )
         AND (:status IS NULL OR t.status = :status)
         AND (:type IS NULL OR t.type = :type)
         AND (:categoryId IS NULL OR 
@@ -66,7 +70,6 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:description IS NULL OR t.description LIKE :description)
         AND (:minAmount IS NULL OR t.amount >= :minAmount)
         AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
-        AND t.dueDate BETWEEN :startDate AND :endDate
         and 
         (:accountsId IS NULL OR t.accountId.accountId IN :accountsId)
         """
@@ -87,25 +90,13 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
     ): AmountIncomeExpenseResponse
 
     @Query(
-        "SELECT SUM(t.amount) FROM Transaction t " +
-                "WHERE t.userId.id = :userId " +
-                "AND t.type = :type " +
-                "AND t.status = :status " +
-                "AND t.dueDate BETWEEN :startDate AND :endDate"
-    )
-    fun sumAmountByUserIdAndTypeAndDateRange(
-        @Param("userId") userId: Int,
-        @Param("type") type: TransactionType?,
-        @Param("status") status: PaymentStatus?,
-        @Param("startDate") startDate: LocalDate,
-        @Param("endDate") endDate: LocalDate
-    ): Int?
-
-    @Query(
         """
         SELECT t FROM Transaction t
         WHERE t.userId.id = :userId
-        AND t.dueDate BETWEEN :startDate AND :endDate
+        AND(
+        (t.dueDate BETWEEN :startDate AND :endDate) OR
+        (t.status = 'PAID' AND t.paidAt BETWEEN :startDate AND :endDate)
+        )
         AND (:type IS NULL OR t.type = :type)
         AND (:status IS NULL OR t.status = :status)
         AND (:categoryId IS NULL OR 
@@ -120,10 +111,13 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:description IS NULL OR t.description LIKE :description)
         AND (:minAmount IS NULL OR t.amount >= :minAmount)
         AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
+        and 
+        (:accountsId IS NULL OR t.accountId.accountId IN :accountsId)
         """
     )
     fun findTransactionsByFilters(
         @Param("userId") userId: Int,
+        @Param("accountsId") accountsId: List<Int>?,
         @Param("startDate") startDate: LocalDate,
         @Param("endDate") endDate: LocalDate,
         @Param("type") type: TransactionType?,

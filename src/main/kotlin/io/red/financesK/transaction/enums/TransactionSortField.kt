@@ -6,7 +6,10 @@ enum class TransactionSortField(val fieldName: String) {
     TYPE("type"),
     CATEGORY("categoryId"),
     CREATED_AT("createdAt"),
-    UPDATED_AT("updatedAt")
+    UPDATED_AT("updatedAt"),
+    PAYMENT_STATUS("status"),
+    PAID_AT("paidAt"),
+    DUE_DATE_AND_STATUS("dueDate, status"),
 }
 
 enum class SortDirection {

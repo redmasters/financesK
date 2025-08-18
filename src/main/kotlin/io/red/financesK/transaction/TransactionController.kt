@@ -12,7 +12,6 @@ import io.red.financesK.transaction.service.create.CreateTransactionService
 import io.red.financesK.transaction.service.delete.DeleteTransactionService
 import io.red.financesK.transaction.service.search.SearchTransactionService
 import io.red.financesK.transaction.service.update.UpdateTransactionService
-import org.springframework.data.domain.Page
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -87,6 +86,7 @@ class TransactionController(
     @GetMapping("/search")
     fun searchTransactionsPaginated(
         @RequestParam userId: Int,
+        @RequestParam (required = false) accountsId: List<Int>?,
         @RequestParam startDate: String,
         @RequestParam endDate: String,
         @RequestParam(required = false) type: String?,
@@ -101,10 +101,11 @@ class TransactionController(
         @RequestParam(defaultValue = "20") size: Int,
         @RequestParam(defaultValue = "DUE_DATE") sortField: String,
         @RequestParam(defaultValue = "DESC") sortDirection: String
-    ): ResponseEntity<Page<TransactionResponse>> {
+    ): ResponseEntity<TransactionSearchResponse> {
 
         val filter = SearchTransactionFilter(
             userId = userId,
+            accountsId = accountsId,
             startDate = LocalDate.parse(startDate),
             endDate = LocalDate.parse(endDate),
             type = type?.let { TransactionType.valueOf(it.uppercase()) },

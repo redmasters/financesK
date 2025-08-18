@@ -51,6 +51,9 @@ data class Transaction(
     @Column(name = "due_date", nullable = false)
     var dueDate: LocalDate,
 
+    @Column(name = "paid_at", nullable = true)
+    var paidAt: LocalDate? = null,
+
     @Column(name = "created_at")
     val createdAt: Instant? = null,
 

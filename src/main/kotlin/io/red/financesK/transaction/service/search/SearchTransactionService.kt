@@ -6,12 +6,12 @@ import io.red.financesK.global.utils.ConvertMoneyUtils
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
 import io.red.financesK.transaction.controller.response.TransactionResponse
+import io.red.financesK.transaction.controller.response.TransactionSearchResponse
 import io.red.financesK.transaction.enums.SortDirection
 import io.red.financesK.transaction.enums.TransactionSortField
 import io.red.financesK.transaction.model.Transaction
 import io.red.financesK.transaction.repository.TransactionRepository
 import org.slf4j.LoggerFactory
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -59,21 +59,45 @@ class SearchTransactionService(
         size: Int,
         sortField: TransactionSortField = TransactionSortField.DUE_DATE,
         sortDirection: SortDirection = SortDirection.DESC
-    ): Page<TransactionResponse> {
+    ): TransactionSearchResponse {
         log.info("m='searchTransactionsPaginated', acao='iniciando busca paginada', userId='${filter.userId}', page='$page', size='$size', sortField='$sortField', sortDirection='$sortDirection'")
 
-        val sort = when (sortDirection) {
-            SortDirection.ASC -> Sort.by(Sort.Direction.ASC, sortField.fieldName)
-            SortDirection.DESC -> Sort.by(Sort.Direction.DESC, sortField.fieldName)
-        }
+        val pageable = when (sortField) {
+            TransactionSortField.DUE_DATE_AND_STATUS -> {
+                // Custom sorting: unpaid and due soon first, then paid transactions
+                PageRequest.of(
+                    page, size, Sort.by(
+                        Sort.Order(Sort.Direction.DESC, "status"), // PENDING comes before PAID alphabetically
+                        Sort.Order(Sort.Direction.ASC, "dueDate"),
+                        Sort.Order(Sort.Direction.DESC, "paidAt") // For paid transactions, most recently paid first
+                    )
+                )
+            }
 
-        val pageable = PageRequest.of(page, size, sort)
+            TransactionSortField.PAID_AT -> {
+                PageRequest.of(
+                    page, size, Sort.by(
+                        Sort.Direction.valueOf(sortDirection.name), "paidAt"
+                    )
+                )
+            }
+
+            else -> {
+                // Handle other sort fields as before
+                PageRequest.of(
+                    page, size, Sort.by(
+                        Sort.Direction.valueOf(sortDirection.name), sortField.fieldName
+                    )
+                )
+            }
+        }
 
         // Preparar descrição para busca com wildcards (case-sensitive por enquanto)
         val searchDescription = filter.description?.let { "%${it}%" }
 
         val transactions = transactionRepository.findTransactionsByFilters(
             userId = filter.userId,
+            accountsId = filter.accountsId,
             startDate = filter.startDate,
             endDate = filter.endDate,
             type = filter.type,
@@ -89,9 +113,17 @@ class SearchTransactionService(
 
         log.info("m='searchTransactionsPaginated', acao='busca concluida', totalElements='${transactions.totalElements}', totalPages='${transactions.totalPages}'")
 
-        return transactions.map { transaction ->
-            convertToTransactionResponse(transaction)
-        }
+        val finacialSummary = getIncomeExpenseBalance(filter)
+
+        return TransactionSearchResponse(
+            transactions = transactions.map { convertToTransactionResponse(it) },
+            totalIncome = finacialSummary.totalIncome,
+            totalIncomeFormatted = finacialSummary.totalIncomeFormatted,
+            totalExpense = finacialSummary.totalExpense,
+            totalExpenseFormatted = finacialSummary.totalExpenseFormatted,
+            balance = finacialSummary.balance,
+            balanceFormatted = finacialSummary.balanceFormatted
+        )
     }
 
     private fun convertToTransactionResponse(transaction: Transaction): TransactionResponse {
