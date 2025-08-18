@@ -29,6 +29,7 @@ services:
       dockerfile: Dockerfile
     container_name: financesK-app
     environment:
+      TZ: "America/Sao_Paulo"
       PROFILE: dev
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/financesk_db
