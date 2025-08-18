@@ -61,6 +61,7 @@ CREATE TABLE tbl_transaction
     payment_status             VARCHAR(10)    NOT NULL  DEFAULT 'PENDING' CHECK (payment_status IN ('PENDING', 'PAID', 'FAILED')),
     category_id                INTEGER        NOT NULL REFERENCES tbl_category (id),
     due_date                   DATE           NOT NULL,
+    paid_at                    DATE,
     created_at                 TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at                 TIMESTAMP WITH TIME ZONE,
     notes                      TEXT,
@@ -192,6 +193,7 @@ COMMENT ON COLUMN tbl_transaction.transaction_operation_type IS 'Tipo específic
 COMMENT ON COLUMN tbl_transaction.payment_status IS 'Status do pagamento: PENDING (pendente), PAID (pago), FAILED (falhado)';
 COMMENT ON COLUMN tbl_transaction.category_id IS 'ID da categoria da transação para classificação e relatórios';
 COMMENT ON COLUMN tbl_transaction.due_date IS 'Data de vencimento ou execução planejada da transação';
+COMMENT ON COLUMN tbl_transaction.paid_at IS 'Data efetiva do pagamento da transação (preenchida quando status = PAID)';
 COMMENT ON COLUMN tbl_transaction.created_at IS 'Data e hora de criação do registro da transação';
 COMMENT ON COLUMN tbl_transaction.updated_at IS 'Data e hora da última modificação da transação';
 COMMENT ON COLUMN tbl_transaction.notes IS 'Observações adicionais, detalhes ou comentários sobre a transação';

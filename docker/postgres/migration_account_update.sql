@@ -76,12 +76,22 @@ BEGIN
     END IF;
 END $$;
 
+-- Adicionar coluna paid_at na tabela tbl_transaction
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name='tbl_transaction' AND column_name='paid_at') THEN
+        ALTER TABLE tbl_transaction ADD COLUMN paid_at DATE;
+    END IF;
+END $$;
+
 -- Criar índices adicionais para as novas colunas (se necessário)
 CREATE INDEX IF NOT EXISTS idx_bank_institution_name ON tbl_bank_institution (bank_institution_name);
 CREATE INDEX IF NOT EXISTS idx_account_bank_institution ON tbl_account (bank_institution_id);
 CREATE INDEX IF NOT EXISTS idx_account_type ON tbl_account (account_type);
 CREATE INDEX IF NOT EXISTS idx_account_statement_closing ON tbl_account (account_statement_closing_date);
 CREATE INDEX IF NOT EXISTS idx_account_payment_due ON tbl_account (account_payment_due_date);
+CREATE INDEX IF NOT EXISTS idx_transaction_paid_at ON tbl_transaction (paid_at);
 
 -- Comentários para documentação das tabelas e colunas
 
@@ -134,6 +144,7 @@ COMMENT ON COLUMN tbl_transaction.transaction_operation_type IS 'Tipo específic
 COMMENT ON COLUMN tbl_transaction.payment_status IS 'Status do pagamento: PENDING (pendente), PAID (pago), FAILED (falhado)';
 COMMENT ON COLUMN tbl_transaction.category_id IS 'ID da categoria da transação para classificação e relatórios';
 COMMENT ON COLUMN tbl_transaction.due_date IS 'Data de vencimento ou execução planejada da transação';
+COMMENT ON COLUMN tbl_transaction.paid_at IS 'Data efetiva do pagamento da transação (preenchida quando status = PAID)';
 COMMENT ON COLUMN tbl_transaction.created_at IS 'Data e hora de criação do registro da transação';
 COMMENT ON COLUMN tbl_transaction.updated_at IS 'Data e hora da última modificação da transação';
 COMMENT ON COLUMN tbl_transaction.notes IS 'Observações adicionais, detalhes ou comentários sobre a transação';
