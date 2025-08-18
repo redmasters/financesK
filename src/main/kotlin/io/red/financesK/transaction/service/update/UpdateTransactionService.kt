@@ -4,12 +4,14 @@ import io.red.financesK.category.service.search.SearchCategoryService
 import io.red.financesK.global.exception.NotFoundException
 import io.red.financesK.transaction.controller.request.UpdateTransactionRequest
 import io.red.financesK.transaction.controller.response.UpdateTransactionResponse
+import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.event.TransactionStatusChangedEvent
 import io.red.financesK.transaction.repository.TransactionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.time.LocalDate
 
 @Service
 class UpdateTransactionService(
@@ -42,6 +44,7 @@ class UpdateTransactionService(
             updateRequest.notes?.let { notes = it }
             // Handle recurrencePattern and installmentInfo if needed
         }
+        transaction.paidAt = if (updateRequest.status == PaymentStatus.PAID) LocalDate.now() else null
         transactionRepository.save(transaction)
         log.info("m='updateTransaction', transactionUpdated='$transaction'")
 
