@@ -70,8 +70,7 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:description IS NULL OR t.description LIKE :description)
         AND (:minAmount IS NULL OR t.amount >= :minAmount)
         AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
-        and 
-        (:accountsId IS NULL OR t.accountId.accountId IN :accountsId)
+        and t.accountId.accountId IN :accountsId
         """
     )
     fun getIncomeExpenseBalance(
@@ -111,8 +110,7 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:description IS NULL OR t.description LIKE :description)
         AND (:minAmount IS NULL OR t.amount >= :minAmount)
         AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
-        and 
-        (:accountsId IS NULL OR t.accountId.accountId IN :accountsId)
+        and t.accountId.accountId IN :accountsId
         """
     )
     fun findTransactionsByFilters(

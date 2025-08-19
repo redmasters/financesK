@@ -6,7 +6,6 @@ import io.red.financesK.account.enums.AccountTypeEnum
 import io.red.financesK.account.repository.AccountRepository
 import io.red.financesK.bank.service.search.SearchBankService
 import io.red.financesK.global.exception.NotFoundException
-import io.red.financesK.global.utils.ConvertMoneyUtils
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -39,7 +38,7 @@ class UpdateAccountService(
 
         request.accountCurrentBalance?.let { balance ->
             log.debug("m='execute', acao='atualizando saldo da conta', accountId='$accountId', newBalance='$balance'")
-            account.accountCurrentBalance = ConvertMoneyUtils.convertToCents(balance)
+            account.accountCurrentBalance = balance.toInt()
         }
 
         request.accountCurrency?.let {
@@ -58,7 +57,7 @@ class UpdateAccountService(
         }
         request.accountCreditLimit?.let { creditLimit ->
             log.debug("m='execute', acao='atualizando limite de crédito da conta', accountId='$accountId', newCreditLimit='$creditLimit'")
-            account.accountCreditLimit = ConvertMoneyUtils.convertToCents(creditLimit)
+            account.accountCreditLimit = creditLimit.toInt()
         }
         request.accountStatementClosingDate?.let {
             log.debug("m='execute', acao='atualizando data de fechamento da conta', accountId='$accountId', newStatementClosingDate='$it'")

@@ -67,7 +67,7 @@ class SearchTransactionService(
                 // Custom sorting: unpaid and due soon first, then paid transactions
                 PageRequest.of(
                     page, size, Sort.by(
-                        Sort.Order(Sort.Direction.DESC, "status"), // PENDING comes before PAID alphabetically
+                        Sort.Order(Sort.Direction.ASC, "status"), // PENDING comes before PAID alphabetically
                         Sort.Order(Sort.Direction.ASC, "dueDate"),
                         Sort.Order(Sort.Direction.DESC, "paidAt") // For paid transactions, most recently paid first
                     )
