@@ -38,3 +38,7 @@ docker-compose.yml
 # Temporary files
 *.tmp
 *.temp
+
+# Data directories (mounted as volumes)
+data/
+uploads/

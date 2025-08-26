@@ -1,11 +1,6 @@
 package io.red.financesK.user.model
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.time.Instant
 
 @Entity
@@ -24,6 +19,9 @@ data class AppUser(
 
     @Column(name = "password_hash", nullable = false)
     val passwordHash: String?,
+
+    @Column(name = "path_avatar", nullable = false)
+    val pathAvatar: String? = null,
 
     @Column(name = "created_at")
     val createdAt: Instant? = null
