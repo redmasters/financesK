@@ -85,6 +85,15 @@ BEGIN
     END IF;
 END $$;
 
+-- Adicionar coluna path_avatar na tabela tbl_app_user se não existir
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name='tbl_app_user' AND column_name='path_avatar') THEN
+        ALTER TABLE tbl_app_user ADD COLUMN path_avatar VARCHAR(255);
+    END IF;
+END $$;
+
 -- Criar índices adicionais para as novas colunas (se necessário)
 CREATE INDEX IF NOT EXISTS idx_bank_institution_name ON tbl_bank_institution (bank_institution_name);
 CREATE INDEX IF NOT EXISTS idx_account_bank_institution ON tbl_account (bank_institution_id);
@@ -108,6 +117,7 @@ COMMENT ON COLUMN tbl_app_user.username IS 'Nome de usuário único para login (
 COMMENT ON COLUMN tbl_app_user.email IS 'Email único do usuário para comunicação';
 COMMENT ON COLUMN tbl_app_user.password_hash IS 'Hash da senha do usuário (mínimo 6 caracteres)';
 COMMENT ON COLUMN tbl_app_user.created_at IS 'Data e hora de criação do usuário no sistema';
+COMMENT ON COLUMN tbl_app_user.path_avatar IS 'Caminho ou URL para a imagem do avatar do usuário';
 
 -- Comentários para tbl_category
 COMMENT ON TABLE tbl_category IS 'Tabela de categorias de transações com suporte hierárquico (categoria pai/filha)';

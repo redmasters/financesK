@@ -5,6 +5,7 @@ CREATE TABLE tbl_app_user
     username      VARCHAR(50) UNIQUE  NOT NULL,
     email         VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255)        NOT NULL,
+    path_avatar   VARCHAR(255),
     created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -156,6 +157,7 @@ COMMENT ON COLUMN tbl_app_user.id IS 'Identificador único do usuário';
 COMMENT ON COLUMN tbl_app_user.username IS 'Nome de usuário único para login (mínimo 6 caracteres)';
 COMMENT ON COLUMN tbl_app_user.email IS 'Email único do usuário para comunicação';
 COMMENT ON COLUMN tbl_app_user.password_hash IS 'Hash da senha do usuário (mínimo 6 caracteres)';
+COMMENT ON COLUMN tbl_app_user.path_avatar IS 'Caminho ou URL da imagem de avatar do usuário';
 COMMENT ON COLUMN tbl_app_user.created_at IS 'Data e hora de criação do usuário no sistema';
 
 -- Comentários para tbl_category
