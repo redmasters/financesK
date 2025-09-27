@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = ["*"], allowedHeaders = ["*"])
 class AuthController(
     private val authService: AuthService
 ) {

@@ -27,7 +27,8 @@ class JwtTokenProvider {
     fun generateToken(customUserDetails: CustomUserDetails): String {
         log.info("Generating JWT token for user: ${customUserDetails.username}")
 
-        return Jwts.builder()
+        return Jwts
+        .builder()
             .subject(customUserDetails.username)
             .claim("id", customUserDetails.getAppUser().id)
             .issuedAt(Date())
@@ -40,8 +41,8 @@ class JwtTokenProvider {
     fun getSignatureKey(): SecretKey {
         log.info("Generating secret key for JWT token")
         val keyBytes = Decoders.BASE64.decode(secretKey)
-        require(keyBytes.size < 32) {
-            throw IllegalArgumentException("Secret key must be at least 32 bytes long")
+        require(keyBytes.size >= 32) {
+            "Secret key must be at least 32 bytes long, but was ${keyBytes.size} bytes"
         }
         return Keys.hmacShaKeyFor(keyBytes)
     }

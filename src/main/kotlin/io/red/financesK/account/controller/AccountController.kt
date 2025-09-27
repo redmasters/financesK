@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/accounts")
-@CrossOrigin(origins = ["*"], maxAge = 3600)
 class AccountController(
     private val createAccountService: CreateAccountService,
     private val updateAccountService: UpdateAccountService,

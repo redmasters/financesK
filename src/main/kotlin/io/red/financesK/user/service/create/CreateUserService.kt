@@ -1,17 +1,23 @@
 package io.red.financesK.user.service.create
 
 import io.red.financesK.auth.controller.response.AuthUserResponse
+import io.red.financesK.auth.service.AuthService
+import io.red.financesK.auth.service.PasswordService
 import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.user.controller.request.CreateUserRequest
 import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.repository.AppUserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 @Service
+@Transactional
 class CreateUserService(
     private val userRepository: AppUserRepository,
+    private val authService: AuthService,
+    private val passwordService: PasswordService
 
 ) {
     private val log = LoggerFactory.getLogger(CreateUserService::class.java)
@@ -24,7 +30,8 @@ class CreateUserService(
         val user = AppUser(
             username = request.username,
             email = request.email,
-            passwordHash = request.password, // In a real application, you should hash the password
+            passwordHash = hashPassword(request.password),
+            passwordSalt = saltPassword(),
             pathAvatar = request.pathAvatar ?: "default-avatar.png", // Default avatar if none provided
             createdAt = Instant.now()
         )
@@ -34,7 +41,7 @@ class CreateUserService(
             id = savedUser.id ?: 0,
             username = savedUser.username ?: "",
             email = savedUser.email ?: "",
-            token = "dummy-token" // In a real application, generate a JWT or similar token here
+            token = authService.getTokenFromUserId(savedUser.id!!.toLong())
         )
     }
 
@@ -45,5 +52,14 @@ class CreateUserService(
             throw ValidationException("Username $username is already taken")
         }
         log.info("Username $username is available")
+    }
+
+    private fun hashPassword(password: String): String? {
+        val charSequence: CharSequence = password as CharSequence
+        return passwordService.encode(charSequence)
+    }
+
+    private fun saltPassword(): String {
+        return passwordService.saltPassword()
     }
 }

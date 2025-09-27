@@ -3,6 +3,7 @@
 build/
 !build/libs/
 gradle-wrapper.jar
+mise.toml
 
 # IDE
 .idea/
@@ -41,4 +42,4 @@ docker-compose.yml
 
 # Data directories (mounted as volumes)
 data/
-uploads/
+data/

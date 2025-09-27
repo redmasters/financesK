@@ -12,17 +12,23 @@ data class AppUser(
     val id: Int? = null,
 
     @Column(name = "username", nullable = false, unique = true)
-    val username: String?,
+    var username: String?,
 
     @Column(name = "email", nullable = false, unique = true)
-    val email: String?,
+    var email: String?,
 
     @Column(name = "password_hash", nullable = false)
-    val passwordHash: String?,
+    var passwordHash: String?,
+
+    @Column(name = "password_salt", nullable = true)
+    var passwordSalt: String? = null,
 
     @Column(name = "path_avatar", nullable = false)
-    val pathAvatar: String? = null,
+    var pathAvatar: String? = null,
 
     @Column(name = "created_at")
-    val createdAt: Instant? = null
+    var createdAt: Instant? = null,
+
+    @Column(name = "updated_at")
+    var updatedAt: Instant? = null
 )

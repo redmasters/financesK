@@ -5,8 +5,10 @@ CREATE TABLE tbl_app_user
     username      VARCHAR(50) UNIQUE  NOT NULL,
     email         VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255)        NOT NULL,
+    password_salt VARCHAR(255)        NOT NULL,
     path_avatar   VARCHAR(255),
-    created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP WITH TIME ZONE
 );
 
 -- Tabela de categorias (deve vir antes de transações por causa da FK)
@@ -221,3 +223,45 @@ COMMENT ON COLUMN tbl_account_balance_history.transaction_id IS 'ID da transaç�
 COMMENT ON COLUMN tbl_account_balance_history.history_amount IS 'Valor da movimentação em centavos (positivo para crédito, negativo para débito)';
 COMMENT ON COLUMN tbl_account_balance_history.history_operation_type IS 'Tipo da operação que gerou a movimentação: DEPOSIT, WITHDRAWAL, TRANSFER, etc.';
 COMMENT ON COLUMN tbl_account_balance_history.balance_timestamp IS 'Data e hora exata da movimentação financeira';
+
+
+
+--- Insere categorias padrão
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (1, 'Alimentacao', 'fas fa-utensils', '#F59E0B', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (2, 'Restaurante', 'fas fa-utensils', '#D97706', 1);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (3, 'Delivery', 'fas fa-utensils', '#D97706', 1);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (4, 'Cafeteria', 'fas fa-utensils', '#D97706', 1);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (5, 'Padaria', 'fas fa-utensils', '#D97706', 1);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (6, 'Assinaturas/Servicos', 'fas fa-mobile-alt', '#3B82F6', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (7, 'Televisao', 'fas fa-bolt', '#3B82F6', 6);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (8, 'Telefone/Celular', 'fas fa-mobile-alt', '#3B82F6', 6);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (9, 'Streamings', 'fas fa-mobile-alt', '#3B82F6', 6);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (10, 'Aplicativos', 'fas fa-mobile-alt', '#3B82F6', 6);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (11, 'Jogos', 'fas fa-gamepad', '#3B82F6', 6);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (12, 'Cuidado Pessoal', 'fas fa-heart', '#DC2626', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (13, 'Cabeleireiro/Barbeiro', 'fas fa-heart', '#DC2626', 12);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (14, 'Higiene Pessoal', 'fas fa-heart', '#DC2626', 12);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (15, 'Dividas/Emprestimos', 'fas fa-money-bill', '#EF4444', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (16, 'Cartao de Credito', 'fas fa-money-bill', '#EF4444', 15);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (17, 'Renegociacao', 'fas fa-money-bill', '#EF4444', 15);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (18, 'Financiamento', 'fas fa-money-bill', '#EF4444', 15);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (19, 'Emprestimo Consignado', 'fas fa-money-bill', '#EF4444', 15);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (20, 'Emprestimo', 'fas fa-money-bill', '#EF4444', 15);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (21, 'Supermercado', 'fas fa-shopping-cart', '#F59E0B', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (22, 'Moradia', 'fas fa-home', '#10B981', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (23, 'Agua', 'fas fa-home', '#3B82F6', 22);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (24, 'Internet', 'fas fa-bolt', '#3B82F6', 22);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (25, 'Aluguel/Prestacao', 'fas fa-home', '#3B82F6', 22);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (26, 'Luz', 'fas fa-bolt', '#F59E0B', 22);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (27, 'Gas', 'fas fa-bolt', '#DC2626', 22);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (28, 'Salario', 'fas fa-money-bill', '#10B981', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (29, 'Saude', 'fas fa-heart', '#EC4899', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (30, 'Academia', 'fas fa-heart', '#64748B', 29);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (31, 'Farmacia', 'fas fa-heart', '#EF4444', 29);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (32, 'Exames', 'fas fa-heart', '#6366F1', 29);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (33, 'Transporte', 'fas fa-car', '#10B981', null);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (34, 'Combustivel', 'fas fa-gas-pump', '#DC2626', 33);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (35, 'Estacionamento', 'fas fa-car', '#3B82F6', 33);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (36, 'Manutencao', 'fas fa-car', '#64748B', 33);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (37, 'Lavacao', 'fas fa-car', '#06B6D4', 33);
+INSERT INTO tbl_category (id, name, icon, color, parent_id) VALUES (38, 'Viagens', 'fas fa-plane', '#3B82F6', null);
