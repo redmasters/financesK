@@ -1,54 +1,44 @@
+-- Simple H2 schema for tests - only essential tables
+DROP TABLE IF EXISTS tbl_account_balance_history;
+DROP TABLE IF EXISTS tbl_transaction;
+DROP TABLE IF EXISTS tbl_account;
+DROP TABLE IF EXISTS tbl_app_user;
+DROP TABLE IF EXISTS tbl_category;
+DROP TABLE IF EXISTS tbl_bank_institution;
+
 -- Tabela de usuários
 CREATE TABLE tbl_app_user (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    password_salt VARCHAR(255),
+    path_avatar VARCHAR(500) DEFAULT '/default/avatar.png',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de instituições bancárias
+CREATE TABLE tbl_bank_institution (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(10) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de categorias
-CREATE TABLE tbl_category (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    type VARCHAR(10) NOT NULL,
-    icon VARCHAR(50),
-    color VARCHAR(7),
-    parent_id INT,
-    FOREIGN KEY (parent_id) REFERENCES tbl_category(id)
-);
-
--- Tabela principal de transações
-CREATE TABLE tbl_transaction (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    description VARCHAR(255) NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    type VARCHAR(10) NOT NULL,
-    category_id INT NOT NULL,
-    transaction_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT,
-    recurrence_pattern VARCHAR(20),
-    installment_info VARCHAR(2000), -- H2 não suporta JSONB, use VARCHAR
+-- Tabela de contas
+CREATE TABLE tbl_account (
+    account_id INT AUTO_INCREMENT PRIMARY KEY,
+    account_name VARCHAR(100) NOT NULL,
+    account_description TEXT,
+    account_current_balance INT NOT NULL DEFAULT 0,
+    account_currency VARCHAR(3) NOT NULL DEFAULT 'BRL',
     user_id INT NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES tbl_category(id),
-    FOREIGN KEY (user_id) REFERENCES tbl_app_user(id)
-);
-
--- Tabela de orçamentos
-CREATE TABLE tbl_budget (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    category_id INT,
-    amount DECIMAL(10, 2) NOT NULL,
-    "month" DATE NOT NULL,
+    bank_institution_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES tbl_app_user(id),
-    FOREIGN KEY (category_id) REFERENCES tbl_category(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índices para otimização
-CREATE INDEX idx_transaction_user_date ON tbl_transaction(user_id, transaction_date);
-CREATE INDEX idx_transaction_category ON tbl_transaction(category_id);
-CREATE INDEX idx_category_type ON tbl_category(type);
-CREATE INDEX idx_budget_user_month ON tbl_budget(user_id, "month");
+-- Add foreign keys after table creation
+ALTER TABLE tbl_account ADD CONSTRAINT FK_account_user FOREIGN KEY (user_id) REFERENCES tbl_app_user(id);
+ALTER TABLE tbl_account ADD CONSTRAINT FK_account_bank FOREIGN KEY (bank_institution_id) REFERENCES tbl_bank_institution(id);
