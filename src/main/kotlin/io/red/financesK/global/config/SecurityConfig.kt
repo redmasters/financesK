@@ -41,6 +41,7 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                it.requestMatchers("/actuator/**").permitAll()
                 it.requestMatchers("/api/v1/accounts/**").authenticated()
                 it.requestMatchers("/api/v1/users/{id}").authenticated()
                 it.requestMatchers("/api/v1/categories/**").authenticated()

@@ -1,0 +1,126 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: financesK-postgres
+    environment:
+      POSTGRES_DB: financesk_db
+      POSTGRES_USER: financesk_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_MAX_CONNECTIONS: "50"
+      POSTGRES_SHARED_BUFFERS: "128MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "256MB"
+      POSTGRES_WORK_MEM: "1MB"
+      POSTGRES_MAINTENANCE_WORK_MEM: "32MB"
+      POSTGRES_RANDOM_PAGE_COST: "1.1"
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financesk_admin -d financesk_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.4"
+          memory: "384MB"
+        reservations:
+          cpus: "0.2"
+          memory: "256MB"
+    command: >
+      postgres  -c shared_buffers=128MB -c effective_cache_size=256MB -c work_mem=1MB -c maintenance_work_mem=32MB -c max_connections=50 -c random_page_cost=1.1 -c checkpoint_timeout=10min -c max_wal_size=1GB -c checkpoint_completion_target=0.7 -c wal_buffers=4MB -c default_statistics_target=100
+
+  app:
+    image: redmater/financesk:latest
+    container_name: financesK-app
+    environment:
+      TZ: "America/Sao_Paulo"
+      PROFILE: ${PROFILE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/financesk_db
+      SPRING_DATASOURCE_USERNAME: financesk_admin
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # JWT Configuration
+      SECRET_KEY: ${SECRET_KEY}
+      # Configuração do diretório de uploads
+      APP_UPLOAD_DIR: /app/uploads
+      APP_MAX_FILE_SIZE: 10MB
+      APP_MAX_REQUEST_SIZE: 10MB
+      # Otimizações Java para baixos recursos
+      JAVA_OPTS: >
+        -XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Xss512k -Dspring.jmx.enabled=false -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -Dfile.encoding=UTF-8
+
+      # Otimizações Spring Boot
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "8"
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "2"
+      SPRING_DATASOURCE_HIKARI_MAX_LIFETIME: "300000"
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: "30000"
+      SPRING_JPA_PROPERTIES_HIBERNATE_ENABLE_LAZY_LOAD_NO_TRANS: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_BATCH_SIZE: "20"
+      SPRING_JPA_PROPERTIES_HIBERNATE_ORDER_INSERTS: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_ORDER_UPDATES: "true"
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: "10MB"
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: "10MB"
+      # Logging reduzido
+      LOGGING_LEVEL_COM_FINANCESK: "WARN"
+      LOGGING_LEVEL_ORG_HIBERNATE: "ERROR"
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: "WARN"
+      LOGGING_LEVEL_ORG_APACHE: "WARN"
+      # Actuator otimizado
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info"
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "when_authorized"
+      MANAGEMENT_HEALTH_DB_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    volumes:
+      # Volume para armazenagem de arquivos (fotos, documentos, etc.)
+      - app_files:/app/uploads
+      # Volume para logs da aplicação (opcional)
+      - app_logs:/app/logs
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.45"
+          memory: "512MB"
+        reservations:
+          cpus: "0.25"
+          memory: "384MB"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+volumes:
+  # Volume para dados do PostgreSQL
+  postgres_data:
+    driver: local
+  # Volume para arquivos da aplicação (fotos de perfil, documentos, anexos, etc.)
+  app_files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/uploads
+  # Volume para logs da aplicação
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/logs
+networks:
+  microservices-network:
+    driver: bridge
