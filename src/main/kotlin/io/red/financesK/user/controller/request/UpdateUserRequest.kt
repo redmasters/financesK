@@ -10,5 +10,6 @@ data class UpdateUserRequest(
     val email: String?,
     val oldPassword: String,
     val newPassword: String,
-    val pathAvatar: String? = "default_avatar.png"
+    val pathAvatar: String? = "default_avatar.png",
+    val token : String? = null
 )

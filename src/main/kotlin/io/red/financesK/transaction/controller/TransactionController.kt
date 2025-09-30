@@ -1,9 +1,14 @@
-package io.red.financesK.transaction
+package io.red.financesK.transaction.controller
 
 import io.red.financesK.transaction.controller.request.CreateTransactionRequest
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.request.UpdateTransactionRequest
-import io.red.financesK.transaction.controller.response.*
+import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
+import io.red.financesK.transaction.controller.response.CreateTransactionResponse
+import io.red.financesK.transaction.controller.response.DeleteTransactionResponse
+import io.red.financesK.transaction.controller.response.TransactionResponse
+import io.red.financesK.transaction.controller.response.TransactionSearchResponse
+import io.red.financesK.transaction.controller.response.UpdateTransactionResponse
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.SortDirection
 import io.red.financesK.transaction.enums.TransactionSortField
@@ -13,7 +18,16 @@ import io.red.financesK.transaction.service.delete.DeleteTransactionService
 import io.red.financesK.transaction.service.search.SearchTransactionService
 import io.red.financesK.transaction.service.update.UpdateTransactionService
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.CrossOrigin
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 
 @RestController
@@ -52,7 +66,7 @@ class TransactionController(
     @GetMapping("/stats/income-expense-balance")
     fun getIncomeExpenseBalance(
         @RequestParam userId: Int,
-        @RequestParam (required = false) accountsId: List<Int>?,
+        @RequestParam(required = false) accountsId: List<Int>?,
         @RequestParam(required = false) type: String?,
         @RequestParam(required = false) status: String?,
         @RequestParam(required = false) categoryId: Int?,
@@ -86,7 +100,7 @@ class TransactionController(
     @GetMapping("/search")
     fun searchTransactionsPaginated(
         @RequestParam userId: Int,
-        @RequestParam (required = false) accountsId: List<Int>?,
+        @RequestParam(required = false) accountsId: List<Int>?,
         @RequestParam startDate: String,
         @RequestParam endDate: String,
         @RequestParam(required = false) type: String?,
