@@ -111,9 +111,6 @@ CREATE TABLE tbl_password_reset_token
 );
 
 ALTER TABLE tbl_password_reset_token
-    ADD CONSTRAINT uc_tbl_password_reset_token_user UNIQUE (user_id);
-
-ALTER TABLE tbl_password_reset_token
     ADD CONSTRAINT FK_TBL_PASSWORD_RESET_TOKEN_ON_USER FOREIGN KEY (user_id) REFERENCES tbl_app_user (id);
 
 -- Índices para otimização de consultas
