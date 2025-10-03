@@ -16,7 +16,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PasswordServiceTest {
@@ -220,13 +219,13 @@ class PasswordServiceTest {
         val result = passwordService.validatePasswordResetToken(validToken)
 
         // Then
-        assertEquals("valid", result)
+        assertTrue(result)
         verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(validToken) }
     }
 
     @Test
-    @DisplayName("Deve retornar null para token de reset de senha inválido")
-    fun `should return null for invalid password reset token`() {
+    @DisplayName("Deve retornar false para token de reset de senha inválido")
+    fun `should return false for invalid password reset token`() {
         // Given
         val invalidToken = "invalid-token-123"
 
@@ -236,13 +235,13 @@ class PasswordServiceTest {
         val result = passwordService.validatePasswordResetToken(invalidToken)
 
         // Then
-        assertNull(result)
+        assertFalse(result)
         verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(invalidToken) }
     }
 
     @Test
-    @DisplayName("Deve retornar null para token de reset de senha expirado")
-    fun `should return null for expired password reset token`() {
+    @DisplayName("Deve retornar false para token de reset de senha expirado")
+    fun `should return false for expired password reset token`() {
         // Given
         val expiredToken = "expired-token-123"
         val pastDate = Date(System.currentTimeMillis() - 60000) // 1 minute in past
@@ -258,7 +257,8 @@ class PasswordServiceTest {
         val result = passwordService.validatePasswordResetToken(expiredToken)
 
         // Then
-        assertNull(result)
+        assertFalse(result)
+        verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(expiredToken) }
     }
 
     @Test
@@ -286,18 +286,15 @@ class PasswordServiceTest {
         )
 
         every { mockPasswordResetTokenRepository.findByToken(validToken) } returns Optional.of(passwordResetToken)
-        every { mockUpdateUserService.updateUser(any(), any()) } returns mockk()
+        every { mockUpdateUserService.saveUser(any()) } returns mockk()
 
         // When
         val result = passwordService.savePassword(locale, updateRequest)
 
         // Then
-        assertEquals("auth.message.valid", result.message)
-        // Para tokens válidos, apenas 1 chamada ao findByToken é feita:
-        // savePassword -> validatePasswordResetToken -> isTokenFound -> findByToken
-        // A segunda chamada na linha 69 nunca é executada porque o método retorna na linha 66
-        verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(validToken) }
-        verify(exactly = 0) { mockUpdateUserService.updateUser(any(), any()) } // Returns early with "valid"
+        assertEquals("auth.message.resetPasswordSuc", result.message)
+        verify(exactly = 2) { mockPasswordResetTokenRepository.findByToken(validToken) } // Called twice: once in validatePasswordResetToken, once in savePassword
+        verify(exactly = 1) { mockUpdateUserService.saveUser(any()) }
     }
 
     @Test
@@ -322,8 +319,8 @@ class PasswordServiceTest {
 
         // Then
         assertEquals("auth.message.invalid", result.message)
-        verify(atLeast = 1) { mockPasswordResetTokenRepository.findByToken(invalidToken) }
-        verify(exactly = 0) { mockUpdateUserService.updateUser(any(), any()) }
+        verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(invalidToken) }
+        verify(exactly = 0) { mockUpdateUserService.saveUser(any()) }
     }
 
     @Test
@@ -423,89 +420,6 @@ class PasswordServiceTest {
     }
 
     @Test
-    @DisplayName("Deve salvar senha e atualizar salt do usuário com fluxo correto")
-    fun `should save password with correct flow when token is valid but savePassword returns early`() {
-        // Given
-        val validToken = "valid-token-salt-test"
-        val newPassword = "newSecurePassword456"
-        val user = createTestUser()
-        val locale = Locale.GERMAN
-
-        val updateRequest = UpdateUserRequest(
-            username = "testuser",
-            email = "test@example.com",
-            oldPassword = "oldPassword",
-            newPassword = newPassword,
-            token = validToken
-        )
-
-        val futureDate = Date(System.currentTimeMillis() + 60000)
-        val passwordResetToken = PasswordResetToken(
-            token = validToken,
-            user = user,
-            expiryDate = futureDate
-        )
-
-        every { mockPasswordResetTokenRepository.findByToken(validToken) } returns Optional.of(passwordResetToken)
-        every { mockUpdateUserService.updateUser(any(), any()) } returns mockk()
-
-        // When
-        val result = passwordService.savePassword(locale, updateRequest)
-
-        // Then
-        // The current implementation returns "valid" because validatePasswordResetToken returns early
-        assertEquals("auth.message.valid", result.message)
-        verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(validToken) }
-    }
-
-    @Test
-    @DisplayName("Deve processar fluxo completo de salvamento quando token é válido mas validatePasswordResetToken retorna null")
-    fun `should complete save flow when validatePasswordResetToken returns null`() {
-        // Given
-        val validToken = "token-for-complete-flow"
-        val newPassword = "newSecurePassword789"
-        val user = createTestUser()
-        val locale = Locale.ENGLISH
-
-        val updateRequest = UpdateUserRequest(
-            username = "testuser",
-            email = "test@example.com",
-            oldPassword = "oldPassword",
-            newPassword = newPassword,
-            token = validToken
-        )
-
-        val futureDate = Date(System.currentTimeMillis() + 60000)
-        val passwordResetToken = PasswordResetToken(
-            token = validToken,
-            user = user,
-            expiryDate = futureDate
-        )
-
-        // Mock para simular o caso onde validatePasswordResetToken retorna null
-        // mas o token existe no segundo findByToken
-        every { mockPasswordResetTokenRepository.findByToken(validToken) } returnsMany listOf(
-            Optional.empty(), // primeira chamada para isTokenFound retorna empty
-            Optional.of(passwordResetToken) // segunda chamada no savePassword encontra o token
-        )
-        every { mockUpdateUserService.updateUser(any(), any()) } returns mockk()
-
-        // When
-        val result = passwordService.savePassword(locale, updateRequest)
-
-        // Then
-        assertEquals("auth.message.resetPasswordSuc", result.message)
-
-        // Verify that user password was encoded and salt was generated
-        assertNotNull(user.passwordHash)
-        assertNotNull(user.passwordSalt)
-        assertEquals(32, user.passwordSalt!!.length) // Salt should be 32 characters
-        assertTrue(user.passwordHash!!.startsWith("$2a$")) // BCrypt hash
-
-        verify(exactly = 1) { mockUpdateUserService.updateUser(user.id!!, updateRequest) }
-    }
-
-    @Test
     @DisplayName("Deve tratar token nulo ou vazio")
     fun `should handle null or empty token`() {
         // Given
@@ -539,8 +453,8 @@ class PasswordServiceTest {
     }
 
     @Test
-    @DisplayName("Deve processar token expirado (comportamento atual da implementação)")
-    fun `should process expired token due to implementation quirk`() {
+    @DisplayName("Deve processar token expirado corretamente")
+    fun `should process expired token correctly`() {
         // Given
         val expiredToken = "expired-token-789"
         val locale = Locale.of("pt", "BR")
@@ -560,47 +474,15 @@ class PasswordServiceTest {
             expiryDate = pastDate
         )
 
-        // O comportamento atual: tokens expirados são processados com sucesso
-        // porque validatePasswordResetToken rejeita o token (retorna null),
-        // mas savePassword encontra o token na segunda chamada findByToken e o processa
         every { mockPasswordResetTokenRepository.findByToken(expiredToken) } returns Optional.of(passwordResetToken)
-        every { mockUpdateUserService.updateUser(any(), any()) } returns mockk()
-
-        // When
-        val result = passwordService.savePassword(locale, updateRequest)
-
-        // Then
-        // Comportamento atual: tokens expirados são processados com sucesso (possível bug)
-        assertEquals("auth.message.resetPasswordSuc", result.message)
-        verify(atLeast = 1) { mockPasswordResetTokenRepository.findByToken(expiredToken) }
-        verify(exactly = 1) { mockUpdateUserService.updateUser(any(), any()) }
-    }
-
-    @Test
-    @DisplayName("Deve retornar erro para token expirado quando não encontrado no banco")
-    fun `should return error for expired token when not found in database`() {
-        // Given
-        val expiredToken = "expired-token-cleaned-up"
-        val locale = Locale.of("pt", "BR")
-
-        val updateRequest = UpdateUserRequest(
-            username = "testuser",
-            email = "test@example.com",
-            oldPassword = "oldPassword",
-            newPassword = "newPassword",
-            token = expiredToken
-        )
-
-        // Simula o cenário onde tokens expirados foram limpos do banco
-        every { mockPasswordResetTokenRepository.findByToken(expiredToken) } returns Optional.empty()
 
         // When
         val result = passwordService.savePassword(locale, updateRequest)
 
         // Then
         assertEquals("auth.message.invalid", result.message)
-        verify(atLeast = 1) { mockPasswordResetTokenRepository.findByToken(expiredToken) }
-        verify(exactly = 0) { mockUpdateUserService.updateUser(any(), any()) }
+        verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(expiredToken) }
+        verify(exactly = 0) { mockUpdateUserService.saveUser(any()) }
     }
 
     private fun createTestUser(): AppUser {

@@ -28,6 +28,9 @@ class CreateUserServiceTest {
     @Mock
     private lateinit var passwordService: PasswordService
 
+    @Mock
+    private lateinit var mailService: io.red.financesK.mail.service.MailService
+
     @InjectMocks
     private lateinit var createUserService: CreateUserService
 

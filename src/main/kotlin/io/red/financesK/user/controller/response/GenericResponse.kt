@@ -9,5 +9,7 @@ class GenericResponse {
 
     constructor(message: String?, error: String?, locale: Locale) {
         this.message = message
+        this.error = error
+        this.locale = locale.toString()
     }
 }

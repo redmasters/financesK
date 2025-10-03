@@ -2,15 +2,12 @@ package io.red.financesK.auth.service
 
 import io.red.financesK.auth.model.PasswordResetToken
 import io.red.financesK.auth.repository.PasswordResetTokenRepository
-import io.red.financesK.transaction.service.create.CreateTransactionService
 import io.red.financesK.user.controller.request.UpdateUserRequest
 import io.red.financesK.user.controller.response.GenericResponse
 import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.service.update.UpdateUserService
 import jakarta.validation.Valid
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.LoggerFactory.*
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -59,34 +56,32 @@ class PasswordService(
         return token
     }
 
-    fun validatePasswordResetToken(token: String): String? {
-        if (isTokenFound(token)) return "valid"
-        return null
+    fun validatePasswordResetToken(token: String): Boolean {
+        if (isTokenFound(token)) {
+            log.info("m='validatePasswordResetToken', acao='token encontrado', token='$token'")
+            return true
+        }
+        log.info("m='validatePasswordResetToken', acao='token nao encontrado ou expirado', token='$token'")
+        return false
     }
 
     fun savePassword(locale: Locale, @Valid request: UpdateUserRequest): GenericResponse {
-        val result = validatePasswordResetToken(request.token ?: "")
-        if (result != null) {
-            log.info("Token validation result: $result, locale: $locale")
-            return GenericResponse("auth.message.$result", null, locale)
-        }
-
-        val passToken = passwordResetTokenRepository.findByToken(request.token ?: "")
-        if (passToken.isPresent) {
+        val token = request.token ?: ""
+        if (validatePasswordResetToken(token)) {
+            val passToken = passwordResetTokenRepository.findByToken(request.token ?: "")
             val user = passToken.get().user
             user?.let {
                 it.passwordHash = encode(request.newPassword)
                 it.passwordSalt = saltPassword()
-                updateUserService.updateUser(it.id!!, request)
+                updateUserService.saveUser(it)
 
-                return GenericResponse("auth.message.resetPasswordSuc", null, locale)
             }
+            log.info("m='savePassword', acao='senha alterada com sucesso', user='${user?.username}'")
+            return GenericResponse("auth.message.resetPasswordSuc", null, locale)
         }
+        log.info("m='savePassword', acao='token invalido ou expirado', token='$token'")
         return GenericResponse("auth.message.invalid", null, locale)
-
-
     }
-
 
     fun isTokenFound(token: String): Boolean {
         val optionalToken = passwordResetTokenRepository.findByToken(token)

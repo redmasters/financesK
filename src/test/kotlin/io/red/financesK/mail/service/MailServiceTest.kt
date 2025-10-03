@@ -28,10 +28,6 @@ class MailServiceTest {
         
         // Set up configuration properties using ReflectionTestUtils
         ReflectionTestUtils.setField(mailService, "supportEmail", "support@financesK.com")
-        ReflectionTestUtils.setField(mailService, "host", "smtp.gmail.com")
-        ReflectionTestUtils.setField(mailService, "port", 587)
-        ReflectionTestUtils.setField(mailService, "username", "test@financesK.com")
-        ReflectionTestUtils.setField(mailService, "password", "testpassword")
     }
 
     @Test
@@ -41,6 +37,7 @@ class MailServiceTest {
             setTo("user@example.com")
             subject = "Test Subject"
             text = "Test message body"
+            from = "support@financesK.com"
         }
         
         val messageSlot = slot<SimpleMailMessage>()
@@ -50,8 +47,12 @@ class MailServiceTest {
         mailService.sendMailToken(testMessage)
 
         // Then
-        verify(exactly = 1) { mockMailSender.send(testMessage) }
-        assertTrue(messageSlot.captured === testMessage)
+        verify(exactly = 1) { mockMailSender.send(any<SimpleMailMessage>()) }
+
+        val capturedMessage = messageSlot.captured
+        assertEquals("Test Subject", capturedMessage.subject)
+        assertEquals("Test message body", capturedMessage.text)
+        assertEquals("user@example.com", capturedMessage.to?.get(0))
     }
 
     @Test
@@ -72,7 +73,38 @@ class MailServiceTest {
         assertEquals("support@financesK.com", result.from)
         assertTrue(result.text!!.contains("Reset your password using the following link"))
         assertTrue(result.text!!.contains(expectedUrl))
-        assertTrue(result.text!!.contains(locale.toString()))
+    }
+
+    @Test
+    fun `constructWelcomeEmail should return properly formatted email`() {
+        // Given
+        val user = createTestUser()
+
+        // When
+        val result = mailService.constructWelcomeEmail(user)
+
+        // Then
+        assertEquals("Welcome to FinancesK", result.subject)
+        assertEquals("test@example.com", result.to?.get(0))
+        assertEquals("support@financesK.com", result.from)
+        assertTrue(result.text!!.contains("Welcome to FinancesK! Your account has been successfully created."))
+    }
+
+    @Test
+    fun `constructGenericEmail should return properly formatted email`() {
+        // Given
+        val user = createTestUser()
+        val subject = "Custom Subject"
+        val body = "Custom email body content"
+
+        // When
+        val result = mailService.constructGenericEmail(subject, body, user)
+
+        // Then
+        assertEquals(subject, result.subject)
+        assertEquals("test@example.com", result.to?.get(0))
+        assertEquals("support@financesK.com", result.from)
+        assertEquals(body, result.text)
     }
 
     @Test
@@ -89,7 +121,6 @@ class MailServiceTest {
         // Then
         assertEquals("Password Reset", result.subject)
         assertTrue(result.text!!.contains("/user/change-password?token=$token"))
-        assertTrue(result.text!!.contains(locale.toString()))
     }
 
     @Test
@@ -120,7 +151,7 @@ class MailServiceTest {
             Locale.FRENCH,
             Locale.GERMAN,
             Locale.ITALIAN,
-            Locale.Builder().setLanguage("pt").setRegion("BR").build() // Portuguese Brazil
+            Locale.Builder().setLanguage("pt").setRegion("BR").build()
         )
 
         // When & Then
@@ -129,19 +160,8 @@ class MailServiceTest {
             
             assertEquals("Password Reset", result.subject)
             assertEquals("test@example.com", result.to?.get(0))
-            assertTrue(result.text!!.contains(locale.toString()))
+            assertNotNull(result.text)
         }
-    }
-
-    @Test
-    fun `getMailSender should return configured JavaMailSender`() {
-        // When
-        val result = mailService.getMailSender()
-
-        // Then
-        assertNotNull(result)
-        // Note: Since JavaMailSenderImpl properties are not easily accessible for testing,
-        // we just verify that the method returns a non-null sender
     }
 
     @Test
@@ -202,7 +222,6 @@ class MailServiceTest {
         val bodyParts = result.text!!.split(" \r\n")
         assertEquals(2, bodyParts.size)
         assertTrue(bodyParts[0].contains("Reset your password using the following link"))
-        assertTrue(bodyParts[0].contains(locale.toString()))
         assertEquals(expectedUrl, bodyParts[1])
     }
 
@@ -224,23 +243,21 @@ class MailServiceTest {
     }
 
     @Test
-    fun `sendMailToken should create internal message but send original`() {
+    fun `sendMailToken should log success when email is sent successfully`() {
         // Given
-        val originalMessage = SimpleMailMessage().apply {
-            setTo("recipient@example.com")
-            subject = "Original Subject"
-            text = "Original text"
+        val testMessage = SimpleMailMessage().apply {
+            setTo("user@example.com")
+            subject = "Test Subject"
+            text = "Test message body"
         }
         
-        val messageSlot = slot<SimpleMailMessage>()
-        every { mockMailSender.send(capture(messageSlot)) } returns Unit
+        every { mockMailSender.send(any<SimpleMailMessage>()) } returns Unit
 
         // When
-        mailService.sendMailToken(originalMessage)
+        mailService.sendMailToken(testMessage)
 
         // Then
-        verify(exactly = 1) { mockMailSender.send(originalMessage) }
-        assertEquals(originalMessage, messageSlot.captured)
+        verify(exactly = 1) { mockMailSender.send(any<SimpleMailMessage>()) }
     }
 
     private fun createTestUser(): AppUser {

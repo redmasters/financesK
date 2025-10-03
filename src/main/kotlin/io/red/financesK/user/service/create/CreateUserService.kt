@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.Locale.getDefault
 
 @Service
 @Transactional
@@ -32,7 +33,7 @@ class CreateUserService(
 
         log.info("Creating user with username: ${request.username}")
         val user = AppUser(
-            username = request.username,
+            username = request.username.lowercase(getDefault()),
             email = request.email,
             passwordHash = hashPassword(request.password),
             passwordSalt = saltPassword(),
@@ -67,23 +68,5 @@ class CreateUserService(
         return passwordService.saltPassword()
     }
 
-    fun resetPassword(request: HttpServletRequest, email: String): GenericResponse {
-        val user = userRepository.findByEmail(email)
-            ?: throw ValidationException("User with email $email not found")
 
-        val token = authService.getTokenFromUserId(user.id!!.toLong())
-
-        passwordService.createPasswordResetTokenForUser(user, token)
-        mailService.sendMailToken(
-            mailService.constructResetTokenEmail(
-                request.contextPath, request.locale, token, user
-            )
-        )
-        return GenericResponse(
-            "If the email is registered, a password reset link will be sent.",
-            null,
-            request.locale
-        )
-
-    }
 }

@@ -3,10 +3,8 @@ package io.red.financesK.mail.service
 import io.red.financesK.user.model.AppUser
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Bean
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
-import org.springframework.mail.javamail.JavaMailSenderImpl
 import org.springframework.stereotype.Service
 import java.util.*
 
@@ -17,29 +15,19 @@ class MailService(
 
     private val log = LoggerFactory.getLogger(MailService::class.java)
 
-    @Value("\${spring.mail.support-email}")
-    val supportEmail: String? = null
-
-    @Value("\${spring.mail.host}")
-    val host: String? = null
-
-    @Value("\${spring.mail.port}")
-    val port: Int? = null
-
-    @Value("\${spring.mail.username}")
-    val username: String? = null
-
-    @Value("\${spring.mail.password}")
-    val password: String? = null
+    @Value("\${spring.mail.support-mail}")
+    private lateinit var supportEmail: String
 
     fun sendMailToken(simpleMailMessage: SimpleMailMessage) {
-        val message = SimpleMailMessage()
-        message.from = username
-        message.setTo("${simpleMailMessage.to}")
-        message.subject = simpleMailMessage.subject
-        message.text = simpleMailMessage.text
+        log.info("m=sendMailToken, action=Sending email from: ${simpleMailMessage.from}, to: ${simpleMailMessage.to}")
 
-        mailSender.send(simpleMailMessage)
+        try {
+            mailSender.send(simpleMailMessage)
+            log.info("m=sendMailToken, action=Email sent successfully to: ${simpleMailMessage.to}")
+        } catch (e: Exception) {
+            log.error("m=sendMailToken, action=Failed to send email to: ${simpleMailMessage.to}, error: ${e.message}", e)
+            throw e
+        }
     }
 
     fun constructResetTokenEmail(
@@ -49,34 +37,28 @@ class MailService(
         user: AppUser
     ): SimpleMailMessage {
         val url = "$contextPath/user/change-password?token=$token"
-        val message = "Reset your password using the following link: $url$locale"
+        val message = "Reset your password using the following link: $url"
         return constructEmail("Password Reset", "$message \r\n$url", user)
     }
 
+    fun constructWelcomeEmail(user: AppUser): SimpleMailMessage {
+        val message = "Welcome to FinancesK! Your account has been successfully created."
+        return constructEmail("Welcome to FinancesK", message, user)
+    }
+
+    fun constructGenericEmail(subject: String, body: String, user: AppUser): SimpleMailMessage {
+        return constructEmail(subject, body, user)
+    }
+
     private fun constructEmail(subject: String, body: String, user: AppUser): SimpleMailMessage {
-        log.info("Sending email to $subject to $body")
+        log.info("m=constructEmail, action=Constructing email to user: ${user.username}")
+
         val email = SimpleMailMessage()
         email.subject = subject
         email.text = body
         email.setTo(user.email)
-        email.from = supportEmail
+        email.from = this.supportEmail
+
         return email
-    }
-
-    @Bean
-    fun getMailSender(): JavaMailSender {
-        val mailSender = JavaMailSenderImpl()
-        mailSender.host = host
-        mailSender.port = port!!
-
-        mailSender.username = username
-        mailSender.password = password
-
-        var props = mailSender.javaMailProperties
-        props["mail.transport.protocol"] = "smtp"
-        props["mail.smtp.auth"] = "true"
-        props["mail.smtps.enable"] = "true"
-        props["mail.debug"] = "true"
-        return mailSender
     }
 }
