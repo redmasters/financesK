@@ -27,7 +27,7 @@ class UpdateUserService(
 
     fun updateUser(userId: Int, request: UpdateUserRequest) {
         log.info("m=updateUser, action=Finding user with id: $userId")
-        val user = searchUserServices.findUserById(userId);
+        val user = searchUserServices.findUserById(userId)
 
         user.username = request.username.ifEmpty { user.username }
         user.email = if (request.email?.isNotEmpty() == true) request.email else user.email

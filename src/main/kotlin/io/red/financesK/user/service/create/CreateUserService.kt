@@ -4,12 +4,9 @@ import io.red.financesK.auth.controller.response.AuthUserResponse
 import io.red.financesK.auth.service.AuthService
 import io.red.financesK.auth.service.PasswordService
 import io.red.financesK.global.exception.ValidationException
-import io.red.financesK.mail.service.MailService
 import io.red.financesK.user.controller.request.CreateUserRequest
-import io.red.financesK.user.controller.response.GenericResponse
 import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.repository.AppUserRepository
-import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,8 +18,7 @@ import java.util.Locale.getDefault
 class CreateUserService(
     private val userRepository: AppUserRepository,
     private val authService: AuthService,
-    private val passwordService: PasswordService,
-    private val mailService: MailService
+    private val passwordService: PasswordService
 
 ) {
     private val log = LoggerFactory.getLogger(CreateUserService::class.java)
