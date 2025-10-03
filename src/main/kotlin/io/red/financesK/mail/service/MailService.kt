@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 class MailService(
@@ -17,6 +16,9 @@ class MailService(
 
     @Value("\${spring.mail.support-mail}")
     private lateinit var supportEmail: String
+
+    @Value("\${app.base-url}")
+    private lateinit var baseUrl: String
 
     fun sendMailToken(simpleMailMessage: SimpleMailMessage) {
         log.info("m=sendMailToken, action=Sending email from: ${simpleMailMessage.from}, to: ${simpleMailMessage.to}")
@@ -31,12 +33,10 @@ class MailService(
     }
 
     fun constructResetTokenEmail(
-        contextPath: String,
-        locale: Locale,
         token: String,
         user: AppUser
     ): SimpleMailMessage {
-        val url = "$contextPath/user/change-password?token=$token"
+        val url = "$baseUrl/user/change-password?token=$token"
         val message = "Reset your password using the following link: $url"
         return constructEmail("Password Reset", "$message \r\n$url", user)
     }

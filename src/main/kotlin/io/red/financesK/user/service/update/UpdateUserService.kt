@@ -1,12 +1,13 @@
 package io.red.financesK.user.service.update
 
-import io.red.financesK.auth.service.AuthService
+import io.red.financesK.auth.jwt.JwtTokenProvider
+import io.red.financesK.auth.service.CustomUserDetails
 import io.red.financesK.auth.service.PasswordService
+import io.red.financesK.auth.service.UserDetailsServiceImpl
 import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.mail.service.MailService
 import io.red.financesK.user.controller.request.UpdateUserRequest
 import io.red.financesK.user.controller.response.GenericResponse
-import io.red.financesK.user.model.AppUser
 import io.red.financesK.user.repository.AppUserRepository
 import io.red.financesK.user.service.search.SearchUserService
 import jakarta.servlet.http.HttpServletRequest
@@ -19,7 +20,8 @@ class UpdateUserService(
     private val searchUserServices: SearchUserService,
     private val userRepository: AppUserRepository,
     private val mailService: MailService,
-    private val authService: AuthService,
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val userDetailsServiceImpl: UserDetailsServiceImpl,
     private val passwordService: PasswordService
 ) {
 
@@ -35,33 +37,30 @@ class UpdateUserService(
         user.updatedAt = Instant.now()
 
         log.info("m=updateUser, action=Updating user with id: $userId")
-        saveUser(user)
-
+        userRepository.save(user)
     }
 
     fun resetPassword(request: HttpServletRequest, email: String): GenericResponse {
+        log.info("m=resetPassword, action=Resetting password for email: $email")
+
         val user = userRepository.findByEmail(email)
             ?: throw ValidationException("User with email $email not found")
 
-        val token = authService.getTokenFromUserId(user.id!!.toLong())
+        val customUser = userDetailsServiceImpl.loadUserByUsername(user.username!!)
+        val token = jwtTokenProvider.generateToken(customUser as CustomUserDetails)
 
         passwordService.createPasswordResetTokenForUser(user, token)
+
         mailService.sendMailToken(
-            mailService.constructResetTokenEmail(
-                request.contextPath, request.locale, token, user
-            )
+            mailService.constructResetTokenEmail(token, user)
         )
+
         return GenericResponse(
             "If the email is registered, a password reset link will be sent.",
             null,
             request.locale
         )
-
     }
 
-    fun saveUser(user: AppUser) {
-        log.info("m=saveUser, action=Saving user with id: ${user.id}")
-        userRepository.save(user)
-    }
 
 }

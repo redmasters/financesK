@@ -5,7 +5,7 @@ import io.red.financesK.auth.repository.PasswordResetTokenRepository
 import io.red.financesK.user.controller.request.UpdateUserRequest
 import io.red.financesK.user.controller.response.GenericResponse
 import io.red.financesK.user.model.AppUser
-import io.red.financesK.user.service.update.UpdateUserService
+import io.red.financesK.user.repository.AppUserRepository
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -17,11 +17,12 @@ import java.util.*
 @Service
 class PasswordService(
     private val passwordResetTokenRepository: PasswordResetTokenRepository,
-    private val updateUserService: UpdateUserService
+    private val appUserRepository: AppUserRepository
 ) {
     private val secureRandom = SecureRandom()
     private val passwordEncoder: PasswordEncoder = BCryptPasswordEncoder()
     private val log = LoggerFactory.getLogger(PasswordService::class.java)
+    val EXPIRATION: Long = 1000 * 60 * 60 // 1 hour
 
     fun encode(password: CharSequence): String {
         val encodedPassword = passwordEncoder.encode(password)
@@ -33,7 +34,6 @@ class PasswordService(
         val match = passwordEncoder.matches(rawPassword, encodedPassword)
         log.info(match.toString())
         return match
-
     }
 
     fun saltPassword(): String {
@@ -44,7 +44,11 @@ class PasswordService(
 
     fun createPasswordResetTokenForUser(user: AppUser, token: String): String {
         log.info("Creating password reset token for user: ${user.username}")
-        val expirationDate = Date(System.currentTimeMillis() + PasswordResetToken().EXPIRATION)
+        val existsToken = passwordResetTokenRepository.findByUserId(user.id!!)
+        if (existsToken.isPresent && !isTokenExpired(existsToken.get())) {
+            return existsToken.get().token
+        }
+        val expirationDate = Date(System.currentTimeMillis() + EXPIRATION)
         val myToken = PasswordResetToken(
             token = token,
             user = user,
@@ -73,8 +77,7 @@ class PasswordService(
             user?.let {
                 it.passwordHash = encode(request.newPassword)
                 it.passwordSalt = saltPassword()
-                updateUserService.saveUser(it)
-
+                appUserRepository.save(it)
             }
             log.info("m='savePassword', acao='senha alterada com sucesso', user='${user?.username}'")
             return GenericResponse("auth.message.resetPasswordSuc", null, locale)
@@ -89,9 +92,6 @@ class PasswordService(
     }
 
     fun isTokenExpired(passToken: PasswordResetToken): Boolean {
-        val calendar = Calendar.getInstance()
-        return passToken.expiryDate.before(calendar.time)
+        return passToken.expiryDate.before(Date())
     }
-
-
 }

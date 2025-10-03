@@ -26,7 +26,7 @@ class PasswordServiceTest {
 
     @BeforeEach
     fun setUp() {
-        passwordService = PasswordService(mockPasswordResetTokenRepository, mockUpdateUserService)
+        passwordService = PasswordService(mockPasswordResetTokenRepository)
         clearAllMocks()
     }
 

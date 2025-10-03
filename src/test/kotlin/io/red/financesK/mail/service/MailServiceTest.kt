@@ -28,6 +28,7 @@ class MailServiceTest {
         
         // Set up configuration properties using ReflectionTestUtils
         ReflectionTestUtils.setField(mailService, "supportEmail", "support@financesK.com")
+        ReflectionTestUtils.setField(mailService, "baseUrl", "https://financesK.com")
     }
 
     @Test
@@ -58,14 +59,12 @@ class MailServiceTest {
     @Test
     fun `constructResetTokenEmail should return properly formatted email`() {
         // Given
-        val contextPath = "https://financesK.com"
-        val locale = Locale.ENGLISH
         val token = "test-token-123"
         val user = createTestUser()
-        val expectedUrl = "$contextPath/user/change-password?token=$token"
+        val expectedUrl = "https://financesK.com/user/change-password?token=$token"
 
         // When
-        val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
+        val result = mailService.constructResetTokenEmail(token, user)
 
         // Then
         assertEquals("Password Reset", result.subject)
@@ -108,31 +107,27 @@ class MailServiceTest {
     }
 
     @Test
-    fun `constructResetTokenEmail should handle empty context path`() {
+    fun `constructResetTokenEmail should use configured base URL`() {
         // Given
-        val contextPath = ""
-        val locale = Locale.FRENCH
-        val token = "empty-context-token"
+        val token = "base-url-test-token"
         val user = createTestUser()
 
         // When
-        val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
+        val result = mailService.constructResetTokenEmail(token, user)
 
         // Then
         assertEquals("Password Reset", result.subject)
-        assertTrue(result.text!!.contains("/user/change-password?token=$token"))
+        assertTrue(result.text!!.contains("https://financesK.com/user/change-password?token=$token"))
     }
 
     @Test
     fun `constructResetTokenEmail should handle special characters in token`() {
         // Given
-        val contextPath = "https://financesK.com"
-        val locale = Locale.GERMAN
         val token = "special-token-!@#$%^&*()"
         val user = createTestUser()
 
         // When
-        val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
+        val result = mailService.constructResetTokenEmail(token, user)
 
         // Then
         assertEquals("Password Reset", result.subject)
@@ -140,28 +135,21 @@ class MailServiceTest {
     }
 
     @Test
-    fun `constructResetTokenEmail should work with different locales`() {
+    fun `constructResetTokenEmail should work with different base URLs`() {
         // Given
-        val contextPath = "https://financesK.com"
-        val token = "locale-test-token"
+        val token = "different-url-test"
         val user = createTestUser()
+        val differentBaseUrl = "https://production.financesK.com"
 
-        val locales = listOf(
-            Locale.ENGLISH,
-            Locale.FRENCH,
-            Locale.GERMAN,
-            Locale.ITALIAN,
-            Locale.Builder().setLanguage("pt").setRegion("BR").build()
-        )
+        // Set different base URL
+        ReflectionTestUtils.setField(mailService, "baseUrl", differentBaseUrl)
 
-        // When & Then
-        locales.forEach { locale ->
-            val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
-            
-            assertEquals("Password Reset", result.subject)
-            assertEquals("test@example.com", result.to?.get(0))
-            assertNotNull(result.text)
-        }
+        // When
+        val result = mailService.constructResetTokenEmail(token, user)
+
+        // Then
+        assertEquals("Password Reset", result.subject)
+        assertTrue(result.text!!.contains("$differentBaseUrl/user/change-password?token=$token"))
     }
 
     @Test
@@ -183,8 +171,6 @@ class MailServiceTest {
     @Test
     fun `constructResetTokenEmail should work with user having different email formats`() {
         // Given
-        val contextPath = "https://financesK.com"
-        val locale = Locale.ENGLISH
         val token = "email-format-test"
         
         val emailFormats = listOf(
@@ -198,8 +184,8 @@ class MailServiceTest {
         // When & Then
         emailFormats.forEach { email ->
             val user = createTestUser().copy(email = email)
-            val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
-            
+            val result = mailService.constructResetTokenEmail(token, user)
+
             assertEquals("Password Reset", result.subject)
             assertEquals(email, result.to?.get(0))
             assertEquals("support@financesK.com", result.from)
@@ -209,14 +195,12 @@ class MailServiceTest {
     @Test
     fun `constructResetTokenEmail should include both message and URL in body`() {
         // Given
-        val contextPath = "https://financesK.com"
-        val locale = Locale.ENGLISH
         val token = "body-content-test"
         val user = createTestUser()
-        val expectedUrl = "$contextPath/user/change-password?token=$token"
+        val expectedUrl = "https://financesK.com/user/change-password?token=$token"
 
         // When
-        val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
+        val result = mailService.constructResetTokenEmail(token, user)
 
         // Then
         val bodyParts = result.text!!.split(" \r\n")
@@ -228,13 +212,11 @@ class MailServiceTest {
     @Test
     fun `constructResetTokenEmail should handle null user email`() {
         // Given
-        val contextPath = "https://financesK.com"
-        val locale = Locale.ENGLISH
         val token = "null-email-test"
         val user = createTestUser().copy(email = null)
 
         // When
-        val result = mailService.constructResetTokenEmail(contextPath, locale, token, user)
+        val result = mailService.constructResetTokenEmail(token, user)
 
         // Then
         assertEquals("Password Reset", result.subject)

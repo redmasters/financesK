@@ -1,8 +1,11 @@
 package io.red.financesK.user.service.update
 
 import io.mockk.*
-import io.red.financesK.auth.service.AuthService
-import io.red.financesK.auth.service.PasswordService
+import io.red.financesK.auth.jwt.JwtTokenProvider
+import io.red.financesK.auth.model.PasswordResetToken
+import io.red.financesK.auth.repository.PasswordResetTokenRepository
+import io.red.financesK.auth.service.CustomUserDetails
+import io.red.financesK.auth.service.UserDetailsServiceImpl
 import io.red.financesK.global.exception.ValidationException
 import io.red.financesK.mail.service.MailService
 import io.red.financesK.user.controller.request.UpdateUserRequest
@@ -27,8 +30,9 @@ class UpdateUserServiceTest {
     private val mockSearchUserService: SearchUserService = mockk(relaxed = true)
     private val mockUserRepository: AppUserRepository = mockk(relaxed = true)
     private val mockMailService: MailService = mockk(relaxed = true)
-    private val mockAuthService: AuthService = mockk(relaxed = true)
-    private val mockPasswordService: PasswordService = mockk(relaxed = true)
+    private val mockJwtTokenProvider: JwtTokenProvider = mockk(relaxed = true)
+    private val mockUserDetailsService: UserDetailsServiceImpl = mockk(relaxed = true)
+    private val mockPasswordResetTokenRepository: PasswordResetTokenRepository = mockk(relaxed = true)
     private val mockHttpServletRequest: HttpServletRequest = mockk(relaxed = true)
 
     @BeforeEach
@@ -37,8 +41,9 @@ class UpdateUserServiceTest {
             mockSearchUserService,
             mockUserRepository,
             mockMailService,
-            mockAuthService,
-            mockPasswordService
+            mockJwtTokenProvider,
+            mockUserDetailsService,
+            mockPasswordResetTokenRepository
         )
         clearAllMocks()
     }
@@ -173,15 +178,16 @@ class UpdateUserServiceTest {
         val user = createTestUser()
         val token = "reset-token-123"
         val locale = Locale.ENGLISH
-        val contextPath = "/app"
         val mailMessage = SimpleMailMessage()
+        val customUserDetails = mockk<CustomUserDetails>()
 
         every { mockUserRepository.findByEmail(email) } returns user
-        every { mockAuthService.getTokenFromUserId(user.id!!.toLong()) } returns token
-        every { mockPasswordService.createPasswordResetTokenForUser(user, token) } returns token
-        every { mockMailService.constructResetTokenEmail(contextPath, locale, token, user) } returns mailMessage
+        every { mockUserDetailsService.loadUserByUsername(user.username!!) } returns customUserDetails
+        every { mockJwtTokenProvider.generateToken(customUserDetails) } returns token
+        every { mockPasswordResetTokenRepository.findByUserId(user.id!!) } returns Optional.empty()
+        every { mockPasswordResetTokenRepository.save(any<PasswordResetToken>()) } returns mockk()
+        every { mockMailService.constructResetTokenEmail(token, user) } returns mailMessage
         every { mockMailService.sendMailToken(mailMessage) } just Runs
-        every { mockHttpServletRequest.contextPath } returns contextPath
         every { mockHttpServletRequest.locale } returns locale
 
         // When
@@ -189,9 +195,9 @@ class UpdateUserServiceTest {
 
         // Then
         verify(exactly = 1) { mockUserRepository.findByEmail(email) }
-        verify(exactly = 1) { mockAuthService.getTokenFromUserId(user.id!!.toLong()) }
-        verify(exactly = 1) { mockPasswordService.createPasswordResetTokenForUser(user, token) }
-        verify(exactly = 1) { mockMailService.constructResetTokenEmail(contextPath, locale, token, user) }
+        verify(exactly = 1) { mockUserDetailsService.loadUserByUsername(user.username!!) }
+        verify(exactly = 1) { mockJwtTokenProvider.generateToken(customUserDetails) }
+        verify(exactly = 1) { mockMailService.constructResetTokenEmail(token, user) }
         verify(exactly = 1) { mockMailService.sendMailToken(mailMessage) }
 
         assertEquals("If the email is registered, a password reset link will be sent.", result.message)
@@ -213,9 +219,39 @@ class UpdateUserServiceTest {
 
         assertEquals("User with email $email not found", exception.message)
         verify(exactly = 1) { mockUserRepository.findByEmail(email) }
-        verify(exactly = 0) { mockAuthService.getTokenFromUserId(any()) }
-        verify(exactly = 0) { mockPasswordService.createPasswordResetTokenForUser(any(), any()) }
+        verify(exactly = 0) { mockUserDetailsService.loadUserByUsername(any()) }
+        verify(exactly = 0) { mockJwtTokenProvider.generateToken(any()) }
         verify(exactly = 0) { mockMailService.sendMailToken(any()) }
+    }
+
+    @Test
+    @DisplayName("Deve reutilizar token existente se houver")
+    fun `should reuse existing token if present`() {
+        // Given
+        val email = "test@example.com"
+        val user = createTestUser()
+        val existingToken = "existing-token-456"
+        val locale = Locale.ENGLISH
+        val mailMessage = SimpleMailMessage()
+        val customUserDetails = mockk<CustomUserDetails>()
+        val existingPasswordResetToken = mockk<PasswordResetToken>()
+
+        every { mockUserRepository.findByEmail(email) } returns user
+        every { mockUserDetailsService.loadUserByUsername(user.username!!) } returns customUserDetails
+        every { mockJwtTokenProvider.generateToken(customUserDetails) } returns "new-token"
+        every { mockPasswordResetTokenRepository.findByUserId(user.id!!) } returns Optional.of(existingPasswordResetToken)
+        every { existingPasswordResetToken.token } returns existingToken
+        every { mockMailService.constructResetTokenEmail("new-token", user) } returns mailMessage
+        every { mockMailService.sendMailToken(mailMessage) } just Runs
+        every { mockHttpServletRequest.locale } returns locale
+
+        // When
+        val result = updateUserService.resetPassword(mockHttpServletRequest, email)
+
+        // Then
+        verify(exactly = 1) { mockPasswordResetTokenRepository.findByUserId(user.id!!) }
+        verify(exactly = 0) { mockPasswordResetTokenRepository.save(any<PasswordResetToken>()) }
+        assertEquals("If the email is registered, a password reset link will be sent.", result.message)
     }
 
     @Test
@@ -275,8 +311,10 @@ class UpdateUserServiceTest {
         val mailMessage = SimpleMailMessage()
 
         every { mockUserRepository.findByEmail(email) } returns user
-        every { mockAuthService.getTokenFromUserId(user.id!!.toLong()) } returns token
-        every { mockPasswordService.createPasswordResetTokenForUser(user, token) } returns token
+        every { mockUserDetailsService.loadUserByUsername(user.username!!) } returns mockk()
+        every { mockJwtTokenProvider.generateToken(any()) } returns token
+        every { mockPasswordResetTokenRepository.findByUserId(user.id!!) } returns Optional.empty()
+        every { mockPasswordResetTokenRepository.save(any<PasswordResetToken>()) } returns mockk()
         every { mockMailService.constructResetTokenEmail(contextPath, locale, token, user) } returns mailMessage
         every { mockMailService.sendMailToken(mailMessage) } just Runs
         every { mockHttpServletRequest.contextPath } returns contextPath

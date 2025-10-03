@@ -8,7 +8,6 @@ import java.util.Date
 @Table(name = "tbl_password_reset_token")
 data class PasswordResetToken(
 
-    val EXPIRATION: Long = 1000 * 60 * 60, // 1 hour
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
