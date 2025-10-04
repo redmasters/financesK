@@ -18,7 +18,7 @@ import javax.crypto.SecretKey
 class JwtTokenProvider {
     private val log = LoggerFactory.getLogger(JwtTokenProvider::class.java)
 
-    @Value("\${app.jwt.secret}")
+    @Value("\${app.jwt.secet}")
     private lateinit var secretKey: String
 
     @Value("\${app.jwt.expiration-ms}")
@@ -45,9 +45,7 @@ class JwtTokenProvider {
         require(keyBytes.size >= 32) {
             "Secret key must be at least 32 bytes long, but was ${keyBytes.size} bytes"
         }
-        val key = Keys.hmacShaKeyFor(keyBytes)
-        log.info("Generating key=$key for JWT token")
-        return key
+        return Keys.hmacShaKeyFor(keyBytes)
 
     }
 
