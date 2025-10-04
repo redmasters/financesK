@@ -44,7 +44,7 @@ class PasswordService(
 
     fun createPasswordResetTokenForUser(user: AppUser, token: String): String {
         log.info("Creating password reset token for user: ${user.username}")
-        val existsToken = passwordResetTokenRepository.findByUserId(user.id!!)
+        val existsToken = passwordResetTokenRepository.findTopByUser_Id(user.id!!)
         if (existsToken.isPresent && !isTokenExpired(existsToken.get())) {
             return existsToken.get().token
         }
@@ -79,11 +79,21 @@ class PasswordService(
                 it.passwordSalt = saltPassword()
                 appUserRepository.save(it)
             }
+            passwordResetTokenRepository.delete(passToken.get())
             log.info("m='savePassword', acao='senha alterada com sucesso', user='${user?.username}'")
             return GenericResponse("auth.message.resetPasswordSuc", null, locale)
         }
         log.info("m='savePassword', acao='token invalido ou expirado', token='$token'")
-        return GenericResponse("auth.message.invalid", null, locale)
+        return GenericResponse("auth.message.invalid", "error.token", locale)
+    }
+
+    fun getUserByPasswordResetToken(token: String): AppUser {
+        val passToken = passwordResetTokenRepository.findByToken(token)
+        return if (passToken.isPresent) {
+            passToken.get().user!!
+        } else {
+            throw RuntimeException("Token not found")
+        }
     }
 
     fun isTokenFound(token: String): Boolean {

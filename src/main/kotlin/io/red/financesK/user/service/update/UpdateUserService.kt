@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.util.*
 
 @Service
 class UpdateUserService(
@@ -31,7 +32,7 @@ class UpdateUserService(
         log.info("m=updateUser, action=Finding user with id: $userId")
         val user = searchUserServices.findUserById(userId)
 
-        user.username = request.username.ifEmpty { user.username }
+        user.username = if (request.username?.isNotEmpty() == true) request.username else user.username
         user.email = if (request.email?.isNotEmpty() == true) request.email else user.email
         user.pathAvatar = if (request.pathAvatar?.isNotEmpty() == true) request.pathAvatar else user.pathAvatar
         user.updatedAt = Instant.now()
@@ -60,6 +61,15 @@ class UpdateUserService(
             null,
             request.locale
         )
+    }
+
+    fun changePassword(token: String): Boolean {
+        return passwordService.validatePasswordResetToken(token)
+    }
+
+    fun savePassword(locale: Locale, request: UpdateUserRequest): GenericResponse {
+        return passwordService.savePassword(locale, request)
+
     }
 
 

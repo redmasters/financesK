@@ -36,7 +36,7 @@ class MailService(
         token: String,
         user: AppUser
     ): SimpleMailMessage {
-        val url = "$baseUrl/user/change-password?token=$token"
+        val url = "$baseUrl/api/v1/users/change-password?token=$token"
         val message = "Reset your password using the following link: $url"
         return constructEmail("Password Reset", "$message \r\n$url", user)
     }
