@@ -18,7 +18,7 @@ import javax.crypto.SecretKey
 class JwtTokenProvider {
     private val log = LoggerFactory.getLogger(JwtTokenProvider::class.java)
 
-    @Value("\${app.jwt.secet}")
+    @Value("\${app.jwt.secret}")
     private lateinit var secretKey: String
 
     @Value("\${app.jwt.expiration-ms}")
