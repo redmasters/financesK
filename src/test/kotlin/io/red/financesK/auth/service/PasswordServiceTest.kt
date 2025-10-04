@@ -1,6 +1,7 @@
 package io.red.financesK.auth.service
 
 import io.mockk.*
+import io.red.financesK.auth.model.Authority
 import io.red.financesK.auth.model.PasswordResetToken
 import io.red.financesK.auth.repository.PasswordResetTokenRepository
 import io.red.financesK.user.controller.request.UpdateUserRequest
@@ -100,6 +101,7 @@ class PasswordServiceTest {
         )
 
         every { mockPasswordResetTokenRepository.findTopByUser_Id(user.id!!) } returns Optional.empty()
+        every { mockAppUserRepository.save(user) } returns user  // Mock necessário para salvar authorities
         every { mockPasswordResetTokenRepository.save(any()) } returns expectedToken
 
         // When
@@ -108,6 +110,7 @@ class PasswordServiceTest {
         // Then
         assertEquals(token, result)
         verify(exactly = 1) { mockPasswordResetTokenRepository.findTopByUser_Id(user.id!!) }
+        verify(exactly = 1) { mockAppUserRepository.save(user) }  // Verifica que o usuário foi salvo com as authorities
         verify(exactly = 1) { mockPasswordResetTokenRepository.save(any()) }
     }
 
@@ -151,6 +154,7 @@ class PasswordServiceTest {
         )
 
         every { mockPasswordResetTokenRepository.findTopByUser_Id(user.id!!) } returns Optional.of(expiredToken)
+        every { mockAppUserRepository.save(user) } returns user  // Mock necessário para salvar authorities
         every { mockPasswordResetTokenRepository.save(any()) } returns mockk()
 
         // When
@@ -159,6 +163,7 @@ class PasswordServiceTest {
         // Then
         assertEquals(newToken, result)
         verify(exactly = 1) { mockPasswordResetTokenRepository.findTopByUser_Id(user.id!!) }
+        verify(exactly = 1) { mockAppUserRepository.save(user) }  // Verifica que o usuário foi salvo com as authorities
         verify(exactly = 1) { mockPasswordResetTokenRepository.save(any()) }
     }
 
