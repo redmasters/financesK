@@ -262,7 +262,8 @@ class PasswordServiceTest {
         assertNull(result.error)
         assertEquals(locale.toString(), result.locale)
 
-        verify(exactly = 1) { mockPasswordResetTokenRepository.findByToken(token) }
+        // findByToken é chamado 2 vezes: uma na validação (isTokenFound) e outra no savePassword
+        verify(exactly = 2) { mockPasswordResetTokenRepository.findByToken(token) }
         verify(exactly = 1) { mockAppUserRepository.save(any()) }
         verify(exactly = 1) { mockPasswordResetTokenRepository.delete(passwordResetToken) }
     }
