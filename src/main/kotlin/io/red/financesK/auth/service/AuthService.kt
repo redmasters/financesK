@@ -15,7 +15,7 @@ class AuthService(
     private val passwordService: PasswordService
 ) {
     fun login(request: LoginRequest): AuthUserResponse {
-        val user = searchUserService.searchUserByUsernameOrEmail(request.username)
+        val user = searchUserService.searchUserByUsernameOrEmail(request.username, request.email)
         val encodedPass = user?.passwordHash ?: throw ValidationException("Invalid username or password")
 
         if (validatePassword(request.password, encodedPass)) {
