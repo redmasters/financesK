@@ -11,7 +11,7 @@ class UserDetailsServiceImpl(
 ) : UserDetailsService {
 
     override fun loadUserByUsername(usernameEmail: String): UserDetails {
-        val user = searchUserService.searchUserByUsernameOrEmail(usernameEmail)
+        val user = searchUserService.searchUserByUsername(usernameEmail)
             ?: throw IllegalArgumentException("User with username or email $usernameEmail not found")
 
         return CustomUserDetails(user)
