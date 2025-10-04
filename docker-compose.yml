@@ -35,6 +35,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/financesk_db
       SPRING_DATASOURCE_USERNAME: financesk_admin
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_BASE_URL: ${APP_BASE_URL}
+      # Email Configuration
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
       # JWT Configuration
       SECRET_KEY: ${SECRET_KEY}
       # Configuração do diretório de uploads

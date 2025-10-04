@@ -1,8 +1,8 @@
 # Stage 1: Builder
-FROM eclipse-temurin:21.0.8_9-jdk-ubi9-minimal AS builder
+FROM eclipse-temurin:21.0.8_9-jdk-alpine AS builder
 
-# Install required packages for building (using microdnf for UBI)
-RUN microdnf install -y findutils && microdnf clean all
+# Install required packages for building and compiling
+RUN apk add --no-cache git wget unzip
 
 # Set working directory
 WORKDIR /app
@@ -23,11 +23,11 @@ COPY src src
 RUN ./gradlew clean bootJar --no-daemon
 
 # Stage 2: Runtime
-FROM eclipse-temurin:21.0.8_9-jre-ubi9-minimal AS app
+FROM eclipse-temurin:21.0.8_9-jre-alpine AS app
 
-# Create non-root user for security (using UBI commands)
-RUN groupadd -g 1001 appgroup && \
-    useradd -u 1001 -g appgroup -m appuser
+# Create non-root user for security
+RUN addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -D appuser
 
 # Set working directory
 WORKDIR /app
@@ -44,9 +44,9 @@ USER appuser
 # Expose port
 EXPOSE 8080
 
-# Health check (using curl instead of wget for UBI)
+# Health check (using curl)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
+    CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
 
 # Run the application with optimized JVM settings for containers
 ENTRYPOINT ["java", \
