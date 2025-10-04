@@ -550,7 +550,8 @@ class PasswordServiceTest {
             passwordSalt = "originalSalt123",
             pathAvatar = "/avatars/test.jpg",
             createdAt = Instant.now().minusSeconds(3600),
-            updatedAt = Instant.now().minusSeconds(1800)
+            updatedAt = Instant.now().minusSeconds(1800),
+            authorities = mutableSetOf(Authority.USER)
         )
     }
 }

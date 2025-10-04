@@ -28,9 +28,10 @@ class JwtTokenProvider {
         log.info("Generating JWT token for user: ${customUserDetails.username}")
 
         return Jwts
-        .builder()
+            .builder()
             .subject(customUserDetails.username)
             .claim("id", customUserDetails.getAppUser().id)
+            .claim("authorities", customUserDetails.authorities)
             .issuedAt(Date())
             .expiration(Date.from(Instant.now().plusMillis(jwtExpirationMs)))
             .signWith(getSignatureKey())
@@ -44,7 +45,10 @@ class JwtTokenProvider {
         require(keyBytes.size >= 32) {
             "Secret key must be at least 32 bytes long, but was ${keyBytes.size} bytes"
         }
-        return Keys.hmacShaKeyFor(keyBytes)
+        val key = Keys.hmacShaKeyFor(keyBytes)
+        log.info("Generating key=$key for JWT token")
+        return key
+
     }
 
     fun getUsernameFromToken(token: String?): String {

@@ -2,6 +2,7 @@ package io.red.financesK.auth.service
 
 import io.red.financesK.user.model.AppUser
 import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
 class CustomUserDetails(
@@ -13,7 +14,9 @@ class CustomUserDetails(
     }
 
     override fun getAuthorities(): Collection<GrantedAuthority> {
-        return emptyList()
+        return appUser.authorities.map { authority ->
+            SimpleGrantedAuthority("ROLE_${authority.value}")
+        }
     }
 
     override fun getPassword(): String {

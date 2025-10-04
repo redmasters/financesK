@@ -1,5 +1,6 @@
 package io.red.financesK.auth.service
 
+import io.red.financesK.auth.model.Authority
 import io.red.financesK.auth.model.PasswordResetToken
 import io.red.financesK.auth.repository.PasswordResetTokenRepository
 import io.red.financesK.user.controller.request.UpdateUserRequest
@@ -9,7 +10,6 @@ import io.red.financesK.user.repository.AppUserRepository
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.security.SecureRandom
 import java.util.*
@@ -19,44 +19,49 @@ class PasswordService(
     private val passwordResetTokenRepository: PasswordResetTokenRepository,
     private val appUserRepository: AppUserRepository
 ) {
-    private val secureRandom = SecureRandom()
-    private val passwordEncoder: PasswordEncoder = BCryptPasswordEncoder()
     private val log = LoggerFactory.getLogger(PasswordService::class.java)
-    val EXPIRATION: Long = 1000 * 60 * 60 // 1 hour
+    private val passwordEncoder = BCryptPasswordEncoder()
+    val EXPIRATION: Long = 60 * 24 * 1000 // 24 horas em milissegundos
 
-    fun encode(password: CharSequence): String {
-        val encodedPassword = passwordEncoder.encode(password)
-        log.info(encodedPassword)
-        return encodedPassword
+    fun encode(rawPassword: String): String {
+        log.info(passwordEncoder.encode(rawPassword))
+        return passwordEncoder.encode(rawPassword)
     }
 
-    fun matches(rawPassword: CharSequence, encodedPassword: String): Boolean {
-        val match = passwordEncoder.matches(rawPassword, encodedPassword)
-        log.info(match.toString())
-        return match
+    fun matches(rawPassword: String, encodedPassword: String): Boolean {
+        return passwordEncoder.matches(rawPassword, encodedPassword)
     }
 
     fun saltPassword(): String {
+        val random = SecureRandom()
         val salt = ByteArray(16)
-        secureRandom.nextBytes(salt)
-        return salt.joinToString("") { "%02x".format(it) }
+        random.nextBytes(salt)
+        return salt.joinToString("") { String.format("%02x", it) }
     }
 
     fun createPasswordResetTokenForUser(user: AppUser, token: String): String {
-        log.info("Creating password reset token for user: ${user.username}")
-        val existsToken = passwordResetTokenRepository.findTopByUser_Id(user.id!!)
-        if (existsToken.isPresent && !isTokenExpired(existsToken.get())) {
-            return existsToken.get().token
+        val existingTokenOpt = passwordResetTokenRepository.findTopByUser_Id(user.id!!)
+
+        if (existingTokenOpt.isPresent) {
+            val existingToken = existingTokenOpt.get()
+            if (!isTokenExpired(existingToken)) {
+                log.info("m='createPasswordResetTokenForUser', acao='token existente ainda valido', user='${user.username}', token='${existingToken.token}'")
+                return existingToken.token
+            }
         }
-        val expirationDate = Date(System.currentTimeMillis() + EXPIRATION)
+
+        // Conceder privilégio temporário de reset de senha
+        user.authorities.add(Authority.CHANGE_PASSWORD_PRIVILEGE)
+        appUserRepository.save(user)
+        log.info("m='createPasswordResetTokenForUser', acao='privilege concedido', user='${user.username}'")
+
         val myToken = PasswordResetToken(
             token = token,
             user = user,
-            expiryDate = expirationDate
+            expiryDate = Date(System.currentTimeMillis() + EXPIRATION)
         )
-
         passwordResetTokenRepository.save(myToken)
-        log.info("Password reset token created successfully")
+        log.info("m='createPasswordResetTokenForUser', acao='novo token criado', user='${user.username}', token='$token'")
         return token
     }
 
@@ -77,7 +82,12 @@ class PasswordService(
             user?.let {
                 it.passwordHash = encode(request.newPassword)
                 it.passwordSalt = saltPassword()
+
+                // Remover o privilégio temporário após alterar a senha
+                it.authorities.remove(Authority.CHANGE_PASSWORD_PRIVILEGE)
+
                 appUserRepository.save(it)
+                log.info("m='savePassword', acao='privilege removido apos alteracao', user='${it.username}'")
             }
             passwordResetTokenRepository.delete(passToken.get())
             log.info("m='savePassword', acao='senha alterada com sucesso', user='${user?.username}'")
@@ -89,19 +99,21 @@ class PasswordService(
 
     fun getUserByPasswordResetToken(token: String): AppUser {
         val passToken = passwordResetTokenRepository.findByToken(token)
-        return if (passToken.isPresent) {
-            passToken.get().user!!
-        } else {
-            throw RuntimeException("Token not found")
-        }
+        return passToken.orElseThrow { RuntimeException("Token not found") }.user
+            ?: throw RuntimeException("User not found for token")
     }
 
     fun isTokenFound(token: String): Boolean {
-        val optionalToken = passwordResetTokenRepository.findByToken(token)
-        return optionalToken.isPresent && !isTokenExpired(optionalToken.get())
+        val passToken = passwordResetTokenRepository.findByToken(token)
+        return if (passToken.isPresent) {
+            !isTokenExpired(passToken.get())
+        } else {
+            false
+        }
     }
 
     fun isTokenExpired(passToken: PasswordResetToken): Boolean {
-        return passToken.expiryDate.before(Date())
+        val now = Date()
+        return passToken.expiryDate.before(now)
     }
 }

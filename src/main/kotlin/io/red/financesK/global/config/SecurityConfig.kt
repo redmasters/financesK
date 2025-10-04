@@ -39,22 +39,42 @@ class SecurityConfig(
             .cors { it.configurationSource(corsConfigSource) }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
+                // Endpoints públicos
                 it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/api/v1/users/reset-password").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/api/v1/users/change-password").permitAll()
                 it.requestMatchers("/actuator/**").permitAll()
-                it.requestMatchers("/api/v1/accounts/**").authenticated()
-                it.requestMatchers("/api/v1/users/{id}").authenticated()
-                it.requestMatchers("/api/v1/categories/**").authenticated()
-                it.requestMatchers("/api/v1/transactions/**").authenticated()
-                it.requestMatchers("/api/v1/budgets/**").authenticated()
-                it.requestMatchers("/api/v1/bank/**").authenticated()
+
+                // Endpoints para reset de senha (apenas usuários com privilégio específico)
+                it.requestMatchers(HttpMethod.POST, "/api/v1/users/change-password").hasRole("CHANGE_PASSWORD_PRIVILEGE")
+                it.requestMatchers(HttpMethod.POST, "/api/v1/users/save-password").hasRole("CHANGE_PASSWORD_PRIVILEGE")
+
+                // Endpoints de gerenciamento de authorities (apenas ADMIN)
+                it.requestMatchers("/api/v1/authorities/**").hasRole("ADMIN")
+                it.requestMatchers(HttpMethod.GET, "/api/v1/authorities/available").hasAnyRole("USER", "ADMIN")
+
+                // Endpoints que requerem papel de ADMIN
+                it.requestMatchers(HttpMethod.DELETE, "/api/v1/users/**").hasRole("ADMIN")
+                it.requestMatchers(HttpMethod.GET, "/api/v1/users").hasRole("ADMIN")
+
+                // Endpoints que requerem autenticação (USER ou ADMIN)
+                it.requestMatchers("/api/v1/accounts/**").hasAnyRole("USER", "ADMIN")
+                it.requestMatchers("/api/v1/users/{id}").hasAnyRole("USER", "ADMIN")
+                it.requestMatchers("/api/v1/categories/**").hasAnyRole("USER", "ADMIN")
+                it.requestMatchers("/api/v1/transactions/**").hasAnyRole("USER", "ADMIN")
+                it.requestMatchers("/api/v1/budgets/**").hasAnyRole("USER", "ADMIN")
+                it.requestMatchers("/api/v1/bank/**").hasAnyRole("USER", "ADMIN")
+
                 it.anyRequest().permitAll()
             }
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .exceptionHandling { ex ->
                 ex.authenticationEntryPoint { _, response, _ ->
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+                }
+                ex.accessDeniedHandler { _, response, _ ->
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied")
                 }
             }
             .build()

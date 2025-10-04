@@ -1,6 +1,7 @@
 package io.red.financesK.user.service.create
 
 import io.red.financesK.auth.controller.response.AuthUserResponse
+import io.red.financesK.auth.model.Authority
 import io.red.financesK.auth.service.AuthService
 import io.red.financesK.auth.service.PasswordService
 import io.red.financesK.global.exception.ValidationException
@@ -34,10 +35,11 @@ class CreateUserService(
             passwordHash = hashPassword(request.password),
             passwordSalt = saltPassword(),
             pathAvatar = request.pathAvatar ?: "default-avatar.png", // Default avatar if none provided
-            createdAt = Instant.now()
+            createdAt = Instant.now(),
+            authorities = mutableSetOf(Authority.USER) // Define USER como authority padrão
         )
         val savedUser = userRepository.save(user)
-        log.info("User created successfully")
+        log.info("User created successfully with USER authority")
         return AuthUserResponse(
             id = savedUser.id ?: 0,
             username = savedUser.username ?: "",
@@ -55,9 +57,8 @@ class CreateUserService(
         log.info("Username $username is available")
     }
 
-    private fun hashPassword(password: String): String? {
-        val charSequence: CharSequence = password as CharSequence
-        return passwordService.encode(charSequence)
+    private fun hashPassword(password: String): String {
+        return passwordService.encode(password)
     }
 
     private fun saltPassword(): String {
