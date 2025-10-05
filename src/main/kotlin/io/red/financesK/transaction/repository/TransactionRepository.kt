@@ -25,6 +25,7 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         )
         FROM Transaction t
         WHERE t.userId.id = :userId
+        AND t.accountId.accountId IN :accountsId
         AND (
         (t.dueDate BETWEEN :startDate AND :endDate) OR
         (t.status = 'PAID' AND t.paidAt BETWEEN :startDate AND :endDate)
@@ -43,7 +44,6 @@ interface TransactionRepository : JpaRepository<Transaction, Int> {
         AND (:description IS NULL OR t.description LIKE :description)
         AND (:minAmount IS NULL OR t.amount >= :minAmount)
         AND (:maxAmount IS NULL OR t.amount <= :maxAmount)
-        and t.accountId.accountId IN :accountsId
         """
     )
     fun getIncomeExpenseBalance(

@@ -7,13 +7,18 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface AccountRepository : JpaRepository<Account, Int> {
-    fun findByUserId_Id(userId: Int): List<Account>
-    fun findByAccountIdAndUserId_Id(accountId: Int, userId: Int): Account?
-    fun findByAccountNameContainingIgnoreCaseAndUserId_Id(accountName: String, userId: Int): List<Account>
 
     @Query("""
         SELECT a FROM Account a
         WHERE a.userId.id = :userId
     """)
     fun findAllByUserId(userId: Int): List<Account>
+
+    @Query("""
+        SELECT COALESCE(SUM(a.accountCurrentBalance), 0)
+        FROM Account a
+        WHERE a.userId.id = :userId
+        AND a.accountId IN :accountIds
+    """)
+    fun getTotalBalanceByUserIdAndAccountIds(userId: Int, accountIds: List<Int>): Int
 }
