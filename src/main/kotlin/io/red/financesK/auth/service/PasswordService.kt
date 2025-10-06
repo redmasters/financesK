@@ -99,8 +99,8 @@ class PasswordService(
 
     fun getUserByPasswordResetToken(token: String): AppUser {
         val passToken = passwordResetTokenRepository.findByToken(token)
-        return passToken.orElseThrow { RuntimeException("Token not found") }.user
-            ?: throw RuntimeException("User not found for token")
+        val passwordResetToken = passToken.orElseThrow { RuntimeException("Token not found") }
+        return passwordResetToken.user ?: throw RuntimeException("User not found for token")
     }
 
     fun isTokenFound(token: String): Boolean {
