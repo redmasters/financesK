@@ -5,10 +5,12 @@ import jakarta.validation.constraints.NotBlank
 
 data class UpdateUserRequest(
     @field:NotBlank(message = "Username is required")
-    val username: String,
+    val username: String?,
     @Email(message = "Email should be valid")
     val email: String?,
-    val oldPassword: String,
+    val oldPassword: String?,
     val newPassword: String,
-    val pathAvatar: String? = "default_avatar.png"
+    val confirmPassword: String,
+    val pathAvatar: String? = "default_avatar.png",
+    val token : String? = null
 )

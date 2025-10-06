@@ -34,10 +34,17 @@ class SearchUserService(
         }
     }
 
-    fun searchUserByUsernameOrEmail(usernameEmail: String): AppUser? {
+    fun searchUserByUsername(usernameEmail: String): AppUser? {
         log.info("Searching for user with username: $usernameEmail")
         val user = userRepository.findByUsernameOrderByEmail(usernameEmail)
             ?: throw NotFoundException("User with username $usernameEmail not found")
+        return user
+    }
+
+    fun searchUserByUsernameOrEmail(username: String?, email: String?): AppUser? {
+        log.info("Searching for user with username or email: $username, $email")
+        val user = userRepository.findByUsernameOrEmail(username, email)
+            ?: throw NotFoundException("User with username or email $username, $email not found")
         return user
     }
 }

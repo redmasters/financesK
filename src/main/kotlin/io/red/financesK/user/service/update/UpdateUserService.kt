@@ -1,48 +1,76 @@
 package io.red.financesK.user.service.update
 
+import io.red.financesK.auth.jwt.JwtTokenProvider
+import io.red.financesK.auth.service.CustomUserDetails
 import io.red.financesK.auth.service.PasswordService
+import io.red.financesK.auth.service.UserDetailsServiceImpl
+import io.red.financesK.global.exception.ValidationException
+import io.red.financesK.mail.service.MailService
 import io.red.financesK.user.controller.request.UpdateUserRequest
+import io.red.financesK.user.controller.response.GenericResponse
 import io.red.financesK.user.repository.AppUserRepository
 import io.red.financesK.user.service.search.SearchUserService
+import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.util.*
 
 @Service
 class UpdateUserService(
     private val searchUserServices: SearchUserService,
-    private val passwordService: PasswordService,
-    private val userRepository: AppUserRepository
+    private val userRepository: AppUserRepository,
+    private val mailService: MailService,
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val userDetailsServiceImpl: UserDetailsServiceImpl,
+    private val passwordService: PasswordService
 ) {
 
-    fun updateUser(userId: Int, request: UpdateUserRequest) {
-        val user = searchUserServices.findUserById(userId);
+    private val log = LoggerFactory.getLogger(UpdateUserService::class.java)
 
-        user.username = request.username
-        user.email = request.email ?: user.email
-        user.passwordHash = updatePassword(user.passwordHash, request.oldPassword, request.newPassword)
-        user.passwordSalt = if (request.newPassword.isNotEmpty()) passwordService.saltPassword() else user.passwordSalt
-        user.pathAvatar = request.pathAvatar
+    fun updateUser(userId: Int, request: UpdateUserRequest) {
+        log.info("m=updateUser, action=Finding user with id: $userId")
+        val user = searchUserServices.findUserById(userId)
+
+        user.username = if (request.username?.isNotEmpty() == true) request.username else user.username
+        user.email = if (request.email?.isNotEmpty() == true) request.email else user.email
+        user.pathAvatar = if (request.pathAvatar?.isNotEmpty() == true) request.pathAvatar else user.pathAvatar
         user.updatedAt = Instant.now()
 
+        log.info("m=updateUser, action=Updating user with id: $userId")
         userRepository.save(user)
+    }
+
+    fun resetPassword(request: HttpServletRequest, email: String): GenericResponse {
+        log.info("m=resetPassword, action=Resetting password for email: $email")
+
+        val user = userRepository.findByEmail(email)
+            ?: throw ValidationException("User with email $email not found")
+
+        val customUser = userDetailsServiceImpl.loadUserByUsername(user.username!!)
+        val token = jwtTokenProvider.generateToken(customUser as CustomUserDetails)
+
+        passwordService.createPasswordResetTokenForUser(user, token)
+
+        mailService.sendMailToken(
+            mailService.constructResetTokenEmail(token, user)
+        )
+
+        return GenericResponse(
+            "If the email is registered, a password reset link will be sent.",
+            null,
+            request.locale
+        )
+    }
+
+    fun changePassword(token: String): Boolean {
+        return passwordService.validatePasswordResetToken(token)
+    }
+
+    fun savePassword(locale: Locale, request: UpdateUserRequest): GenericResponse {
+        return passwordService.savePassword(locale, request)
 
     }
 
-    private fun updatePassword(currentPasswordHash: String?, oldPassword: String, newPassword: String): String? {
-        if (newPassword.isEmpty()) return currentPasswordHash
-
-        if (oldPassword.isNotEmpty() && newPassword.isNotEmpty()) {
-
-            val encodedOldPassword = passwordService.encode(oldPassword)
-            val passMatch = passwordService.matches(oldPassword, encodedOldPassword)
-            if (passMatch) {
-                return passwordService.encode(newPassword)
-            } else {
-                throw IllegalArgumentException("Old password does not match")
-            }
-        }
-        return currentPasswordHash
-
-    }
 
 }

@@ -1,8 +1,9 @@
 package io.red.financesK.transaction.service.search
 
-import io.red.financesK.account.service.search.SearchAccountService
+import io.red.financesK.account.repository.AccountRepository
 import io.red.financesK.global.exception.NotFoundException
 import io.red.financesK.global.utils.ConvertMoneyUtils
+import io.red.financesK.global.utils.MoneyFormatterUtils
 import io.red.financesK.transaction.controller.request.SearchTransactionFilter
 import io.red.financesK.transaction.controller.response.AmountIncomeExpenseResponse
 import io.red.financesK.transaction.controller.response.TransactionResponse
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service
 @Service
 class SearchTransactionService(
     private val transactionRepository: TransactionRepository,
-    private val searchAccountService: SearchAccountService
+    private val accountRepository: AccountRepository
 ) {
     private val log = LoggerFactory.getLogger(SearchTransactionService::class.java)
 
@@ -33,7 +34,8 @@ class SearchTransactionService(
                     " endDate='${filter.endDate}'"
         )
 
-        val result = transactionRepository.getIncomeExpenseBalance(
+        // Buscar os totais das transações
+        val transactionResult = transactionRepository.getIncomeExpenseBalance(
             userId = filter.userId,
             accountsId = filter.accountsId,
             status = filter.status,
@@ -46,6 +48,25 @@ class SearchTransactionService(
             maxAmount = filter.maxAmount,
             startDate = filter.startDate,
             endDate = filter.endDate
+        )
+
+        // Buscar o saldo total das contas
+        val accountsBalance = filter.accountsId?.let { accountIds ->
+            accountRepository.getTotalBalanceByUserIdAndAccountIds(filter.userId, accountIds)
+        } ?: 0
+
+        log.info("m='getIncomeExpenseBalance', acao='calculando saldo final', transactionBalance='${transactionResult.balance}', accountsBalance='$accountsBalance'")
+
+        // Calcular o saldo final (transações + saldo das contas)
+//        val finalBalance = ConvertMoneyUtils.convertToDecimal(transactionResult.balance.toInt() + accountsBalance)
+
+        val result = AmountIncomeExpenseResponse(
+            totalIncome = transactionResult.totalIncome,
+            totalIncomeFormatted = transactionResult.totalIncomeFormatted,
+            totalExpense = transactionResult.totalExpense,
+            totalExpenseFormatted = transactionResult.totalExpenseFormatted,
+            balance = ConvertMoneyUtils.convertToDecimal(accountsBalance),
+            balanceFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(ConvertMoneyUtils.convertToDecimal(accountsBalance))
         )
 
         log.info("m='getIncomeExpenseBalance', acao='balance calculado', totalIncome='${result.totalIncome}', totalExpense='${result.totalExpense}', balance='${result.balance}'")

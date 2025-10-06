@@ -15,10 +15,12 @@
 - [x] Implementar lista de transacoes;
 - [x] Implementar lista de categorias;
 - [x] Implementar lista de contas bancarias;
-- [ ] Responses formatados para o frontend:
-    - [ ] datas;
+- [x] Responses formatados para o frontend:
+    - [x] datas;
     - [x] valores monetários;
-- [ ] Implementar autenticação de usuário;
+- [x] Implementar autenticação de usuário;
 - [ ] Implementar relatórios financeiros;
 - [ ] Implementar gráficos de despesas e receitas;
 - [ ] Implementar orcamentos mensais por categoria;
+- [ ] Implementar categorias por usuarios;
+- [ ] Implementar reset de senha;

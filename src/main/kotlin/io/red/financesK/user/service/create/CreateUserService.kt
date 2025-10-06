@@ -1,6 +1,7 @@
 package io.red.financesK.user.service.create
 
 import io.red.financesK.auth.controller.response.AuthUserResponse
+import io.red.financesK.auth.model.Authority
 import io.red.financesK.auth.service.AuthService
 import io.red.financesK.auth.service.PasswordService
 import io.red.financesK.global.exception.ValidationException
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.Locale.getDefault
 
 @Service
 @Transactional
@@ -24,19 +26,20 @@ class CreateUserService(
 
     fun execute(request: CreateUserRequest): AuthUserResponse {
 
-        isUsernameTaken(request.username)
+        isUsernameOrEmailTaken(request.username, request.email)
 
         log.info("Creating user with username: ${request.username}")
         val user = AppUser(
-            username = request.username,
+            username = request.username.lowercase(getDefault()),
             email = request.email,
             passwordHash = hashPassword(request.password),
             passwordSalt = saltPassword(),
             pathAvatar = request.pathAvatar ?: "default-avatar.png", // Default avatar if none provided
-            createdAt = Instant.now()
+            createdAt = Instant.now(),
+            authorities = mutableSetOf(Authority.USER) // Define USER como authority padrão
         )
         val savedUser = userRepository.save(user)
-        log.info("User created successfully")
+        log.info("User created successfully with USER authority")
         return AuthUserResponse(
             id = savedUser.id ?: 0,
             username = savedUser.username ?: "",
@@ -45,21 +48,22 @@ class CreateUserService(
         )
     }
 
-    private fun isUsernameTaken(username: String) {
+    private fun isUsernameOrEmailTaken(username: String, email: String) {
         log.info("Checking if username $username is already taken")
-        if (userRepository.existsByUsername(username)) {
+        if (userRepository.existsByUsernameOrEmail(username, email)) {
             log.error("Username $username is already taken")
             throw ValidationException("Username $username is already taken")
         }
         log.info("Username $username is available")
     }
 
-    private fun hashPassword(password: String): String? {
-        val charSequence: CharSequence = password as CharSequence
-        return passwordService.encode(charSequence)
+    private fun hashPassword(password: String): String {
+        return passwordService.encode(password)
     }
 
     private fun saltPassword(): String {
         return passwordService.saltPassword()
     }
+
+
 }
