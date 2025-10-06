@@ -11,6 +11,7 @@ import org.springframework.test.util.ReflectionTestUtils
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class MailServiceTest {
 
@@ -103,9 +104,9 @@ class MailServiceTest {
 
         // Verify the message contains both the descriptive text and the URL
         assertNotNull(result.text)
-        assertEquals(true, result.text!!.contains("Reset your password using the following link:"))
-        assertEquals(true, result.text!!.contains(expectedUrl))
-        assertEquals(true, result.text!!.contains("\r\n"))
+        assertTrue(result.text!!.contains("Reset your password using the following link:"))
+        assertTrue(result.text!!.contains(expectedUrl))
+        assertTrue(result.text!!.contains("\r\n"))
 
         // Verify the complete expected format
         val expectedMessage = "Reset your password using the following link: $expectedUrl"
