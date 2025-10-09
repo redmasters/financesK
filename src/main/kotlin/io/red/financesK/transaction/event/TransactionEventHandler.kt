@@ -18,6 +18,10 @@ class TransactionEventHandler(
     @EventListener
     fun handleTransactionCreatedEvent(event: TransactionCreatedEvent) {
         log.info("m='handleTransactionCreatedEvent', acao='processando evento de criacao', transactionId='${event.transactionId}', accountId='${event.accountId}'")
+        if (event.status == PaymentStatus.PENDING) {
+            log.debug("m='handleTransactionCreatedEvent', acao='ignorando transacao PENDING', transactionId='${event.transactionId}', accountId='${event.accountId}', status='${event.status}'")
+            return
+        }
         updateAccountBalance(event.accountId, event.amount, event.type)
     }
 
@@ -35,8 +39,10 @@ class TransactionEventHandler(
     }
 
     private fun updateAccountBalance(accountId: Int?, amount: Int, type: TransactionType?) {
-        log.info("m='updateAccountBalance', acao='atualizando saldo da conta'," +
-                " accountId='$accountId', amount='$amount', type='$type'")
+        log.info(
+            "m='updateAccountBalance', acao='atualizando saldo da conta'," +
+                    " accountId='$accountId', amount='$amount', type='$type'"
+        )
 
         val account = accountRepository.findById(accountId!!).orElseThrow {
             NotFoundException("Account with ID $accountId not found")
@@ -50,7 +56,9 @@ class TransactionEventHandler(
         account.accountCurrentBalance = newBalance
         accountRepository.save(account)
 
-        log.info("m='updateAccountBalance', acao='saldo atualizado com sucesso', accountId='$accountId'," +
-                " balanceAnterior='$currentBalance', novoSaldo='$newBalance', mudanca='$balanceChange'")
+        log.info(
+            "m='updateAccountBalance', acao='saldo atualizado com sucesso', accountId='$accountId'," +
+                    " balanceAnterior='$currentBalance', novoSaldo='$newBalance', mudanca='$balanceChange'"
+        )
     }
 }

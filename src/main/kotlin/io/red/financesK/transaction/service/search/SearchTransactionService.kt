@@ -57,16 +57,15 @@ class SearchTransactionService(
 
         log.info("m='getIncomeExpenseBalance', acao='calculando saldo final', transactionBalance='${transactionResult.balance}', accountsBalance='$accountsBalance'")
 
-        // Calcular o saldo final (transações + saldo das contas)
-//        val finalBalance = ConvertMoneyUtils.convertToDecimal(transactionResult.balance.toInt() + accountsBalance)
+        val finalBalance = ConvertMoneyUtils.convertToDecimal(accountsBalance)
 
         val result = AmountIncomeExpenseResponse(
             totalIncome = transactionResult.totalIncome,
             totalIncomeFormatted = transactionResult.totalIncomeFormatted,
             totalExpense = transactionResult.totalExpense,
             totalExpenseFormatted = transactionResult.totalExpenseFormatted,
-            balance = ConvertMoneyUtils.convertToDecimal(accountsBalance),
-            balanceFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(ConvertMoneyUtils.convertToDecimal(accountsBalance))
+            balance = finalBalance,
+            balanceFormatted = MoneyFormatterUtils.formatToBrazilianCurrency(finalBalance)
         )
 
         log.info("m='getIncomeExpenseBalance', acao='balance calculado', totalIncome='${result.totalIncome}', totalExpense='${result.totalExpense}', balance='${result.balance}'")
