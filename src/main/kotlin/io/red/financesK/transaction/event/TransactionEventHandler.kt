@@ -18,7 +18,10 @@ class TransactionEventHandler(
     @EventListener
     fun handleTransactionCreatedEvent(event: TransactionCreatedEvent) {
         log.info("m='handleTransactionCreatedEvent', acao='processando evento de criacao', transactionId='${event.transactionId}', accountId='${event.accountId}'")
-        if (event.status == PaymentStatus.PENDING) return
+        if (event.status == PaymentStatus.PENDING) {
+            log.debug("m='handleTransactionCreatedEvent', acao='ignorando transacao PENDING', transactionId='${event.transactionId}', accountId='${event.accountId}', status='${event.status}'")
+            return
+        }
         updateAccountBalance(event.accountId, event.amount, event.type)
     }
 
