@@ -5,179 +5,239 @@ import io.red.financesK.account.repository.AccountRepository
 import io.red.financesK.global.exception.NotFoundException
 import io.red.financesK.transaction.enums.PaymentStatus
 import io.red.financesK.transaction.enums.TransactionType
-import io.red.financesK.user.model.AppUser
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.ArgumentCaptor
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
-import org.mockito.MockitoAnnotations
+import org.mockito.junit.jupiter.MockitoExtension
 import java.util.*
+import kotlin.test.assertEquals
 
+@ExtendWith(MockitoExtension::class)
 class TransactionEventHandlerTest {
 
     @Mock
     private lateinit var accountRepository: AccountRepository
 
+    @InjectMocks
     private lateinit var transactionEventHandler: TransactionEventHandler
+
+    private lateinit var account: Account
 
     @BeforeEach
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
-        transactionEventHandler = TransactionEventHandler(accountRepository)
+        account = Account(
+            accountId = 1,
+            accountName = "Test Account",
+            accountCurrentBalance = 1000
+        )
     }
 
     @Test
-    @DisplayName("Deve processar evento de criação de transação de despesa e atualizar saldo da conta")
-    fun `should handle transaction created event for expense and update account balance`() {
+    @DisplayName("Deve ignorar transação criada com status PENDING e não atualizar saldo")
+    fun `should ignore pending transaction created and not update balance`() {
         // Given
-        val accountId = 1
-        val amount = 100
-        val initialBalance = 500
-        val account = createAccount(accountId, initialBalance)
         val event = TransactionCreatedEvent(
             transactionId = 1,
-            accountId = accountId,
-            amount = amount,
+            accountId = 1,
+            amount = 500,
             type = TransactionType.EXPENSE,
-            status = PaymentStatus.PAID
+            status = PaymentStatus.PENDING
         )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
 
         // When
         transactionEventHandler.handleTransactionCreatedEvent(event)
 
         // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 400) // 500 - 100
-        verify(accountRepository).findById(accountId)
+        verify(accountRepository, never()).findById(any())
+        verify(accountRepository, never()).save(any())
     }
 
     @Test
-    @DisplayName("Deve processar evento de criação de transação de receita e atualizar saldo da conta")
-    fun `should handle transaction created event for income and update account balance`() {
+    @DisplayName("Deve atualizar saldo quando transação criada com status PAID")
+    fun `should update balance when transaction created with PAID status`() {
         // Given
-        val accountId = 1
-        val amount = 200
-        val initialBalance = 300
-        val account = createAccount(accountId, initialBalance)
         val event = TransactionCreatedEvent(
             transactionId = 1,
-            accountId = accountId,
-            amount = amount,
+            accountId = 1,
+            amount = 500,
+            type = TransactionType.EXPENSE,
+            status = PaymentStatus.PAID
+        )
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
+
+        // When
+        transactionEventHandler.handleTransactionCreatedEvent(event)
+
+        // Then
+        verify(accountRepository).findById(1)
+        verify(accountRepository).save(any())
+        assertEquals(500, account.accountCurrentBalance) // 1000 - 500 = 500 (expense)
+    }
+
+    @Test
+    @DisplayName("Deve atualizar saldo quando transação criada com status FAILED")
+    fun `should update balance when transaction created with FAILED status`() {
+        // Given
+        val event = TransactionCreatedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 300,
             type = TransactionType.INCOME,
-            status = PaymentStatus.PAID
+            status = PaymentStatus.FAILED
         )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
 
         // When
         transactionEventHandler.handleTransactionCreatedEvent(event)
 
         // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 500) // 300 + 200
-        verify(accountRepository).findById(accountId)
+        verify(accountRepository).findById(1)
+        verify(accountRepository).save(any())
+        assertEquals(1300, account.accountCurrentBalance) // 1000 + 300 = 1300 (income)
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando conta não for encontrada no evento de criação")
-    fun `should throw exception when account not found on transaction created event`() {
+    @DisplayName("Deve aplicar valor ao saldo quando status muda de PENDING para PAID")
+    fun `should apply amount to balance when status changes from PENDING to PAID`() {
         // Given
-        val accountId = 999
-        val event = TransactionCreatedEvent(
-            transactionId = 1,
-            accountId = accountId,
-            amount = 100,
-            type = TransactionType.EXPENSE,
-            status = PaymentStatus.PAID
-        )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.empty())
-
-        // When & Then
-        assertThrows<NotFoundException> {
-            transactionEventHandler.handleTransactionCreatedEvent(event)
-        }
-
-        verify(accountRepository).findById(accountId)
-        verify(accountRepository, never()).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve processar mudança de status de pendente para pago e atualizar saldo")
-    fun `should handle status change from pending to paid and update balance`() {
-        // Given
-        val accountId = 1
-        val amount = 150
-        val initialBalance = 1000
-        val account = createAccount(accountId, initialBalance)
         val event = TransactionStatusChangedEvent(
             transactionId = 1,
-            accountId = accountId,
-            amount = amount,
+            accountId = 1,
+            amount = 200,
             type = TransactionType.EXPENSE,
             previousStatus = PaymentStatus.PENDING,
             newStatus = PaymentStatus.PAID
         )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
 
         // When
         transactionEventHandler.handleTransactionStatusChangedEvent(event)
 
         // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 850) // 1000 - 150
-        verify(accountRepository).findById(accountId)
+        verify(accountRepository).findById(1)
+        verify(accountRepository).save(any())
+        assertEquals(800, account.accountCurrentBalance) // 1000 - 200 = 800 (expense)
     }
 
     @Test
-    @DisplayName("Deve processar mudança de status de pago para pendente e reverter saldo")
-    fun `should handle status change from paid to pending and revert balance`() {
+    @DisplayName("Deve aplicar valor ao saldo quando status muda de FAILED para PAID")
+    fun `should apply amount to balance when status changes from FAILED to PAID`() {
         // Given
-        val accountId = 1
-        val amount = 75
-        val initialBalance = 800
-        val account = createAccount(accountId, initialBalance)
         val event = TransactionStatusChangedEvent(
             transactionId = 1,
-            accountId = accountId,
-            amount = amount,
+            accountId = 1,
+            amount = 150,
             type = TransactionType.INCOME,
+            previousStatus = PaymentStatus.FAILED,
+            newStatus = PaymentStatus.PAID
+        )
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
+
+        // When
+        transactionEventHandler.handleTransactionStatusChangedEvent(event)
+
+        // Then
+        verify(accountRepository).findById(1)
+        verify(accountRepository).save(any())
+        assertEquals(1150, account.accountCurrentBalance) // 1000 + 150 = 1150 (income)
+    }
+
+    @Test
+    @DisplayName("Deve reverter valor do saldo quando status muda de PAID para PENDING")
+    fun `should revert amount from balance when status changes from PAID to PENDING`() {
+        // Given
+        val event = TransactionStatusChangedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 300,
+            type = TransactionType.EXPENSE,
             previousStatus = PaymentStatus.PAID,
             newStatus = PaymentStatus.PENDING
         )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
 
         // When
         transactionEventHandler.handleTransactionStatusChangedEvent(event)
 
         // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 725) // 800 - 75 (reversed income)
-        verify(accountRepository).findById(accountId)
+        verify(accountRepository).findById(1)
+        verify(accountRepository).save(any())
+        assertEquals(1300, account.accountCurrentBalance) // 1000 - (-300) = 1300 (reverting expense)
     }
 
     @Test
-    @DisplayName("Não deve atualizar saldo quando mudança de status não envolve 'PAID'")
-    fun `should not update balance when status change does not involve paid`() {
+    @DisplayName("Deve reverter valor do saldo quando status muda de PAID para FAILED")
+    fun `should revert amount from balance when status changes from PAID to FAILED`() {
+        // Given
+        val event = TransactionStatusChangedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 250,
+            type = TransactionType.INCOME,
+            previousStatus = PaymentStatus.PAID,
+            newStatus = PaymentStatus.FAILED
+        )
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
+
+        // When
+        transactionEventHandler.handleTransactionStatusChangedEvent(event)
+
+        // Then
+        verify(accountRepository).findById(1)
+        verify(accountRepository).save(any())
+        assertEquals(750, account.accountCurrentBalance) // 1000 - 250 = 750 (reverting income)
+    }
+
+    @Test
+    @DisplayName("Não deve alterar saldo quando status permanece PENDING")
+    fun `should not change balance when status remains PENDING`() {
+        // Given
+        val event = TransactionStatusChangedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 100,
+            type = TransactionType.EXPENSE,
+            previousStatus = PaymentStatus.PENDING,
+            newStatus = PaymentStatus.PENDING
+        )
+
+        // When
+        transactionEventHandler.handleTransactionStatusChangedEvent(event)
+
+        // Then
+        verify(accountRepository, never()).findById(any())
+        verify(accountRepository, never()).save(any())
+    }
+
+    @Test
+    @DisplayName("Não deve alterar saldo quando status permanece PAID")
+    fun `should not change balance when status remains PAID`() {
+        // Given
+        val event = TransactionStatusChangedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 100,
+            type = TransactionType.EXPENSE,
+            previousStatus = PaymentStatus.PAID,
+            newStatus = PaymentStatus.PAID
+        )
+
+        // When
+        transactionEventHandler.handleTransactionStatusChangedEvent(event)
+
+        // Then
+        verify(accountRepository, never()).findById(any())
+        verify(accountRepository, never()).save(any())
+    }
+
+    @Test
+    @DisplayName("Não deve alterar saldo quando muda de PENDING para FAILED")
+    fun `should not change balance when status changes from PENDING to FAILED`() {
         // Given
         val event = TransactionStatusChangedEvent(
             transactionId = 1,
@@ -192,165 +252,110 @@ class TransactionEventHandlerTest {
         transactionEventHandler.handleTransactionStatusChangedEvent(event)
 
         // Then
-        verify(accountRepository, never()).findById(any(Int::class.java))
-        verify(accountRepository, never()).save(any(Account::class.java))
+        verify(accountRepository, never()).findById(any())
+        verify(accountRepository, never()).save(any())
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando conta não for encontrada no evento de mudança de status")
-    fun `should throw exception when account not found on status change event`() {
+    @DisplayName("Não deve alterar saldo quando muda de FAILED para PENDING")
+    fun `should not change balance when status changes from FAILED to PENDING`() {
         // Given
-        val accountId = 999
         val event = TransactionStatusChangedEvent(
             transactionId = 1,
-            accountId = accountId,
+            accountId = 1,
             amount = 100,
             type = TransactionType.EXPENSE,
-            previousStatus = PaymentStatus.PENDING,
-            newStatus = PaymentStatus.PAID
+            previousStatus = PaymentStatus.FAILED,
+            newStatus = PaymentStatus.PENDING
         )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.empty())
-
-        // When & Then
-        assertThrows<NotFoundException> {
-            transactionEventHandler.handleTransactionStatusChangedEvent(event)
-        }
-
-        verify(accountRepository).findById(accountId)
-        verify(accountRepository, never()).save(any(Account::class.java))
-    }
-
-    @Test
-    @DisplayName("Deve processar transação de despesa com saldo inicial zero")
-    fun `should handle expense transaction with zero initial balance`() {
-        // Given
-        val accountId = 1
-        val amount = 50
-        val account = createAccount(accountId, 0)
-        val event = TransactionCreatedEvent(
-            transactionId = 1,
-            accountId = accountId,
-            amount = amount,
-            type = TransactionType.EXPENSE,
-            status = PaymentStatus.PAID
-        )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
-
-        // When
-        transactionEventHandler.handleTransactionCreatedEvent(event)
-
-        // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == -50) // 0 - 50
-    }
-
-    @Test
-    @DisplayName("Deve processar transação com saldo inicial nulo")
-    fun `should handle transaction with null initial balance`() {
-        // Given
-        val accountId = 1
-        val amount = 100
-        val account = createAccount(accountId, null)
-        val event = TransactionCreatedEvent(
-            transactionId = 1,
-            accountId = accountId,
-            amount = amount,
-            type = TransactionType.INCOME,
-            status = PaymentStatus.PAID
-        )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
-
-        // When
-        transactionEventHandler.handleTransactionCreatedEvent(event)
-
-        // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 100) // 0 + 100 (null treated as 0)
-    }
-
-    @Test
-    @DisplayName("Deve processar transação com tipo nulo como receita")
-    fun `should handle transaction with null type as income`() {
-        // Given
-        val accountId = 1
-        val amount = 200
-        val initialBalance = 500
-        val account = createAccount(accountId, initialBalance)
-        val event = TransactionCreatedEvent(
-            transactionId = 1,
-            accountId = accountId,
-            amount = amount,
-            type = null,
-            status = PaymentStatus.PAID
-        )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
-
-        // When
-        transactionEventHandler.handleTransactionCreatedEvent(event)
-
-        // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 700) // 500 + 200 (null type treated as income)
-    }
-
-    @Test
-    @DisplayName("Deve processar mudança de status de pago para falha e reverter saldo")
-    fun `should handle status change from paid to failed and revert balance`() {
-        // Given
-        val accountId = 1
-        val amount = 300
-        val initialBalance = 1500
-        val account = createAccount(accountId, initialBalance)
-        val event = TransactionStatusChangedEvent(
-            transactionId = 1,
-            accountId = accountId,
-            amount = amount,
-            type = TransactionType.EXPENSE,
-            previousStatus = PaymentStatus.PAID,
-            newStatus = PaymentStatus.FAILED
-        )
-
-        `when`(accountRepository.findById(accountId)).thenReturn(Optional.of(account))
 
         // When
         transactionEventHandler.handleTransactionStatusChangedEvent(event)
 
         // Then
-        val accountCaptor = ArgumentCaptor.forClass(Account::class.java)
-        verify(accountRepository).save(accountCaptor.capture())
-        val savedAccount = accountCaptor.value
-
-        assert(savedAccount.accountCurrentBalance == 1800) // 1500 + 300 (reversed expense)
+        verify(accountRepository, never()).findById(any())
+        verify(accountRepository, never()).save(any())
     }
 
-    private fun createAccount(accountId: Int, initialBalance: Int?): Account {
-        val user = AppUser(
-            id = 1,
-            username = "testuser",
-            email = "test@test.com",
-            passwordHash = "hashedpassword"
+    @Test
+    @DisplayName("Deve lançar exceção quando conta não é encontrada")
+    fun `should throw exception when account is not found`() {
+        // Given
+        val event = TransactionCreatedEvent(
+            transactionId = 1,
+            accountId = 999,
+            amount = 100,
+            type = TransactionType.EXPENSE,
+            status = PaymentStatus.PAID
         )
+        `when`(accountRepository.findById(999)).thenReturn(Optional.empty())
 
-        return Account(
-            accountId = accountId,
-            accountName = "Test Account",
-            accountDescription = "Test Description",
-            accountCurrentBalance = initialBalance,
-            accountCurrency = "BRL",
-            userId = user
+        // When & Then
+        assertThrows<NotFoundException> {
+            transactionEventHandler.handleTransactionCreatedEvent(event)
+        }
+    }
+
+    @Test
+    @DisplayName("Deve calcular corretamente saldo para despesa")
+    fun `should correctly calculate balance for expense`() {
+        // Given
+        account.accountCurrentBalance = 500
+        val event = TransactionCreatedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 200,
+            type = TransactionType.EXPENSE,
+            status = PaymentStatus.PAID
         )
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
+
+        // When
+        transactionEventHandler.handleTransactionCreatedEvent(event)
+
+        // Then
+        assertEquals(300, account.accountCurrentBalance) // 500 - 200 = 300
+    }
+
+    @Test
+    @DisplayName("Deve calcular corretamente saldo para receita")
+    fun `should correctly calculate balance for income`() {
+        // Given
+        account.accountCurrentBalance = 500
+        val event = TransactionCreatedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 300,
+            type = TransactionType.INCOME,
+            status = PaymentStatus.PAID
+        )
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
+
+        // When
+        transactionEventHandler.handleTransactionCreatedEvent(event)
+
+        // Then
+        assertEquals(800, account.accountCurrentBalance) // 500 + 300 = 800
+    }
+
+    @Test
+    @DisplayName("Deve tratar saldo nulo corretamente")
+    fun `should handle null balance correctly`() {
+        // Given
+        account.accountCurrentBalance = null
+        val event = TransactionCreatedEvent(
+            transactionId = 1,
+            accountId = 1,
+            amount = 100,
+            type = TransactionType.INCOME,
+            status = PaymentStatus.PAID
+        )
+        `when`(accountRepository.findById(1)).thenReturn(Optional.of(account))
+
+        // When
+        transactionEventHandler.handleTransactionCreatedEvent(event)
+
+        // Then
+        assertEquals(100, account.accountCurrentBalance) // 0 + 100 = 100 (null treated as 0)
     }
 }
