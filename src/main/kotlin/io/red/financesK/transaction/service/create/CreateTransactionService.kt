@@ -75,7 +75,7 @@ class CreateTransactionService(
     ): List<CreateTransactionResponse> {
         val account = searchAccountService.findAccountById(request.accountId)
         val amount = request.amount.toInt()
-        val occurrences = request.totalInstallments ?: calculateOcurrences(request.dueDate, recurrence)
+        val occurrences = request.totalInstallments ?: calculateOccurrences(request.dueDate, recurrence)
 
         val currentInstallment = request.currentInstallment ?: 1
 
@@ -194,7 +194,7 @@ fun singleTransaction(
     )
 }
 
-fun calculateOcurrences(
+fun calculateOccurrences(
     dueDate: LocalDate,
     recurrence: RecurrencePattern
 ): Int {
