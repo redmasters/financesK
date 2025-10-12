@@ -1,45 +1,61 @@
-# Gradle
-.gradle/
+# Build artifacts
 build/
-!build/libs/
+.gradle/
 gradle-wrapper.jar
-mise.toml
 
-# IDE
+# IDE files
 .idea/
-*.iml
-*.iws
-*.ipr
 .vscode/
+*.iml
+*.ipr
+*.iws
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Test files
-src/test/
-**/test/
-
-# Documentation
-README.md
-HELP.md
 
 # Git
 .git/
 .gitignore
+.gitattributes
 
-# Docker
-Dockerfile
-docker-compose.yml
+# Documentation
+README.md
+*.md
+docs/
+
+# Local data
+data/
+kls_database.db
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
 .dockerignore
+
+# Scripts
+scripts/
+deploy.sh
 
 # Temporary files
 *.tmp
-*.temp
+*.log
+logs/
 
-# Data directories (mounted as volumes)
-data/
-data/
+# Test results
+test-results/
+reports/
+
+# Local environment
+.env
+.env.local
+
+# GitHub
+.github/
+
+# Mise configuration
+mise.toml
+
+# Backup files
+*.bak
+*.backup
