@@ -87,7 +87,6 @@ class CreateTransactionServiceTest {
 
         val recurrence = RecurrencePattern.MONTHLY
         val dueDate = LocalDate.of(2025, 10, 17)
-//        val occurrences = listOf(3, 4, 5)
         val occurrences = createTransactionService.calculateOcurrences(dueDate, recurrence)
         // convert occurrences to list of int
         val occurrencesList = (1..occurrences).toList()
