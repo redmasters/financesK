@@ -79,14 +79,11 @@ class CreateTransactionService(
 
         val currentInstallment = request.currentInstallment ?: 1
 
-        val installmentValue = if ((request.totalInstallments != null) && (occurrences > 0)) {
-            amount.div(occurrences)
-        } else {
-            amount
-        }
+        val installmentValue = amount
 
-        val transactions = (currentInstallment..occurrences).map { occurrence ->
-            val transactionDate = calculateTransactionDate(request.dueDate, recurrence, occurrence)
+        val transactions = (currentInstallment..occurrences).mapIndexed { index, occurrence ->
+            val dateCalculationIndex = index + 1
+            val transactionDate = calculateTransactionDate(request.dueDate, recurrence, dateCalculationIndex)
             val currentOccurrence = request.currentInstallment?.let {
                 it + occurrence - currentInstallment
             } ?: (occurrence)
@@ -129,7 +126,7 @@ class CreateTransactionService(
 
         }
 
-        val savedTransactions = transactionRepository.saveAll(transactions)
+        val savedTransactions = transactionRepository.saveAll(transactions).toList()
         log.info("m='recurringTransactions', acao='transacoes salvas', quantidade='${savedTransactions.size}', recorrencia='$recurrence'")
 
         return savedTransactions.map { transaction ->
@@ -144,7 +141,7 @@ class CreateTransactionService(
     }
 
 
-    private fun calculateTransactionDate(
+    fun calculateTransactionDate(
         dueDate: LocalDate,
         recurrence: RecurrencePattern,
         occurrence: Int
@@ -157,82 +154,81 @@ class CreateTransactionService(
         }
     }
 
-    fun singleTransaction(
-        request: CreateTransactionRequest,
-        category: Category,
-        user: AppUser
-    ): List<CreateTransactionResponse> {
-        val account = searchAccountService.findAccountById(request.accountId)
+fun singleTransaction(
+    request: CreateTransactionRequest,
+    category: Category,
+    user: AppUser
+): List<CreateTransactionResponse> {
+    val account = searchAccountService.findAccountById(request.accountId)
 
-        val transaction = Transaction(
-            description = request.description,
-            amount = request.amount.toInt(),
-            downPayment = request.downPayment?.toInt(),
-            type = request.type,
-            operationType = request.operationType,
-            status = request.status ?: PaymentStatus.PENDING,
-            categoryId = category,
-            dueDate = request.dueDate,
-            createdAt = Instant.now(),
-            paidAt = if (request.status == PaymentStatus.PAID) LocalDate.now() else null,
-            notes = request.notes,
-            recurrencePattern = null,
-            installmentInfo = null,
-            userId = user,
-            accountId = account
+    val transaction = Transaction(
+        description = request.description,
+        amount = request.amount.toInt(),
+        downPayment = request.downPayment?.toInt(),
+        type = request.type,
+        operationType = request.operationType,
+        status = request.status ?: PaymentStatus.PENDING,
+        categoryId = category,
+        dueDate = request.dueDate,
+        createdAt = Instant.now(),
+        paidAt = if (request.status == PaymentStatus.PAID) LocalDate.now() else null,
+        notes = request.notes,
+        recurrencePattern = null,
+        installmentInfo = null,
+        userId = user,
+        accountId = account
+    )
+
+    val savedTransaction = transactionRepository.save(transaction)
+    log.info("m='singleTransaction', acao='transacao salva', transactionId='${savedTransaction.id}'")
+
+    log.info("m='singleTransaction', acao='publicando evento', transactionId='${savedTransaction.id}'")
+    publishEvent(savedTransaction)
+
+    return listOf(
+        CreateTransactionResponse(
+            id = savedTransaction.id ?: 0,
+            "Transaction created successfully",
+            savedTransaction.createdAt ?: Instant.now()
         )
+    )
+}
 
-        val savedTransaction = transactionRepository.save(transaction)
-        log.info("m='singleTransaction', acao='transacao salva', transactionId='${savedTransaction.id}'")
-
-        // Publicar evento após salvar
-        log.info("m='singleTransaction', acao='publicando evento', transactionId='${savedTransaction.id}'")
-        publishEvent(savedTransaction)
-
-        return listOf(
-            CreateTransactionResponse(
-                id = savedTransaction.id ?: 0,
-                "Transaction created successfully",
-                savedTransaction.createdAt ?: Instant.now()
-            )
-        )
-    }
-
-    private fun calculateOcurrences(
-        dueDate: LocalDate,
-        recurrence: RecurrencePattern
-    ): Int {
-        return when (recurrence) {
-            RecurrencePattern.DAILY -> {
-                val endOfMonth = dueDate.withDayOfMonth(dueDate.lengthOfMonth())
-                ChronoUnit.DAYS.between(dueDate, endOfMonth).toInt() + 1
-            }
-
-            RecurrencePattern.WEEKLY -> {
-                val endOfMonth = dueDate.withDayOfMonth(dueDate.lengthOfMonth())
-                val totalDays = ChronoUnit.DAYS.between(dueDate, endOfMonth).toInt() + 1
-                (totalDays / 7).coerceAtLeast(1)
-            }
-
-            RecurrencePattern.MONTHLY -> {
-                val endOfYear = dueDate.withDayOfYear(dueDate.lengthOfYear())
-                ChronoUnit.MONTHS.between(YearMonth.from(dueDate), YearMonth.from(endOfYear)).toInt() + 1
-            }
-
-            RecurrencePattern.YEARLY -> 1
+fun calculateOcurrences(
+    dueDate: LocalDate,
+    recurrence: RecurrencePattern
+): Int {
+    return when (recurrence) {
+        RecurrencePattern.DAILY -> {
+            val endOfMonth = dueDate.withDayOfMonth(dueDate.lengthOfMonth())
+            ChronoUnit.DAYS.between(dueDate, endOfMonth).toInt() + 1
         }
-    }
 
-    private fun publishEvent(transaction: Transaction) {
-        applicationEventPublisher.publishEvent(
-            TransactionCreatedEvent(
-                transactionId = transaction.id ?: 0,
-                accountId = transaction.accountId?.accountId ?: 0,
-                amount = transaction.amount,
-                type = transaction.type,
-                status = transaction.status
-            )
-        )
+        RecurrencePattern.WEEKLY -> {
+            val endOfMonth = dueDate.withDayOfMonth(dueDate.lengthOfMonth())
+            val totalDays = ChronoUnit.DAYS.between(dueDate, endOfMonth).toInt() + 1
+            (totalDays / 7).coerceAtLeast(1)
+        }
+
+        RecurrencePattern.MONTHLY -> {
+            val endOfYear = dueDate.withDayOfYear(dueDate.lengthOfYear())
+            ChronoUnit.MONTHS.between(YearMonth.from(dueDate), YearMonth.from(endOfYear)).toInt() + 1
+        }
+
+        RecurrencePattern.YEARLY -> 1
     }
+}
+
+private fun publishEvent(transaction: Transaction) {
+    applicationEventPublisher.publishEvent(
+        TransactionCreatedEvent(
+            transactionId = transaction.id ?: 0,
+            accountId = transaction.accountId?.accountId ?: 0,
+            amount = transaction.amount,
+            type = transaction.type,
+            status = transaction.status
+        )
+    )
+}
 
 }
