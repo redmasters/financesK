@@ -109,7 +109,21 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Check Docker Hub credentials
+      id: docker_creds
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || secrets.DOCKERHUB_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD || secrets.DOCKERHUB_TOKEN || secrets.DOCKERHUB_PASSWORD }}
+      run: |
+        if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ]; then
+          echo "available=true" >> $GITHUB_OUTPUT
+        else
+          echo "available=false" >> $GITHUB_OUTPUT
+          echo "::warning::Docker Hub credentials not configured. Skipping Docker publish steps."
+        fi
+
     - name: Log in to Docker Hub
+      if: ${{ steps.docker_creds.outputs.available == 'true' }}
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -117,6 +131,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD || secrets.DOCKERHUB_TOKEN || secrets.DOCKERHUB_PASSWORD }}
 
     - name: Extract metadata
+      if: ${{ steps.docker_creds.outputs.available == 'true' }}
       id: meta
       uses: docker/metadata-action@v5
       with:
@@ -129,6 +144,7 @@ jobs:
           type=raw,value=${{ steps.semantic_version.outputs.BASE_VERSION }}
 
     - name: Build and push Docker image
+      if: ${{ steps.docker_creds.outputs.available == 'true' }}
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -145,7 +161,7 @@ jobs:
           BUILDKIT_INLINE_CACHE=1
 
     - name: Update deployment status
-      if: success()
+      if: ${{ success() && steps.docker_creds.outputs.available == 'true' }}
       run: |
         echo "✅ Successfully deployed:"
         echo "- Latest: ${{ env.IMAGE_NAME }}:latest"
@@ -153,7 +169,7 @@ jobs:
         echo "- Base: ${{ env.IMAGE_NAME }}:${{ steps.semantic_version.outputs.BASE_VERSION }}"
 
     - name: Create GitHub Release
-      if: success()
+      if: ${{ success() && steps.docker_creds.outputs.available == 'true' }}
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
