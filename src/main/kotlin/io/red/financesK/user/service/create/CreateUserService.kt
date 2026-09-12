@@ -19,8 +19,7 @@ import java.util.Locale.getDefault
 class CreateUserService(
     private val userRepository: AppUserRepository,
     private val authService: AuthService,
-    private val passwordService: PasswordService
-
+    private val passwordService: PasswordService,
 ) {
     private val log = LoggerFactory.getLogger(CreateUserService::class.java)
 
